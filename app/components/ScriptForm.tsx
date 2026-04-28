@@ -289,7 +289,7 @@ export default function ScriptForm() {
             <p className="text-xs text-gray-500">
               ※正式版では無制限でご利用いただけます。{" "}
               <a
-                href="https://forms.gle/XXXXXXXXXXXXXXXX"
+                href="https://forms.gle/xPoQcpJBbGiiFGY39"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-indigo-600 underline hover:text-indigo-500 transition-colors"
