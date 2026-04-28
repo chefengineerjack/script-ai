@@ -2,13 +2,16 @@ import { Redis } from "@upstash/redis";
 
 export const DAILY_LIMIT = 2;
 
-// Upstash Redis クライアント（env未設定時はnull → メモリフォールバック）
+// Vercel KV / Upstash どちらの環境変数にも対応
+const redisUrl =
+  process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+const redisToken =
+  process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+
+// Redis クライアント（env未設定時はnull → メモリフォールバック）
 const redis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
+  redisUrl && redisToken
+    ? new Redis({ url: redisUrl, token: redisToken })
     : null;
 
 // Redis未設定時（ローカル開発）のインメモリフォールバック
