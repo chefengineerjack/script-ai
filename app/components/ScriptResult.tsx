@@ -12,6 +12,7 @@ import type {
   PhonePersona,
   EmailPersona,
   CompanyAnalysis,
+  PlanRestrictions,
 } from "@/app/types/generate";
 
 // ─── 共通パーツ ────────────────────────────────────────────
@@ -74,6 +75,115 @@ function TalkBox({ text }: { text: string }) {
     <p className="whitespace-pre-wrap rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 text-sm text-gray-800 leading-relaxed">
       {text}
     </p>
+  );
+}
+
+// ─── ロックアイコン ────────────────────────────────────────
+
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  );
+}
+
+// ─── 企業分析（ロック済み） ────────────────────────────────
+
+function CompanyAnalysisLocked() {
+  return (
+    <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl shadow-indigo-100 border border-gray-100 overflow-hidden">
+      <div className="border-b border-gray-100 bg-gradient-to-r from-sky-50 to-indigo-50 px-6 py-4 flex items-center gap-3">
+        <span className="text-xl">🏢</span>
+        <div>
+          <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider">企業分析</p>
+          <h3 className="text-lg font-bold text-gray-900">ターゲット企業分析</h3>
+        </div>
+      </div>
+      <div className="px-6 py-10 flex flex-col items-center gap-4 text-center">
+        <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+          <LockIcon className="h-6 w-6 text-gray-400" />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-sm font-semibold text-gray-900">
+            スタンダードプランで利用可能
+          </p>
+          <p className="text-xs text-gray-500 max-w-xs">
+            経営ビジョン・推定課題・アプローチアドバイスなど、ターゲット企業の詳細分析はスタンダードプランでご利用いただけます。
+          </p>
+        </div>
+        <a
+          href="#pricing"
+          className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+        >
+          プランを見る
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── 会話フロー（ロック済み） ──────────────────────────────
+
+function FlowChartLocked() {
+  const fakeNodes = [
+    { id: 1, label: "受付突破" },
+    { id: 2, label: "フック（興味づけ）" },
+    { id: 3, label: "ヒアリング（課題の引き出し）" },
+    { id: 4, label: "本題（解決策の提示）" },
+    { id: 5, label: "クロージング" },
+  ];
+
+  return (
+    <div className="relative rounded-xl bg-gray-50 border border-gray-100 px-4 py-4 overflow-hidden min-h-[200px]">
+      {/* ぼかしたダミーフロー */}
+      <div className="blur-sm pointer-events-none select-none space-y-0">
+        {fakeNodes.map((node, i) => (
+          <div key={node.id} className="flex gap-3">
+            <div className="flex flex-col items-center w-7 shrink-0">
+              <div className="h-7 w-7 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">
+                {i + 1}
+              </div>
+              {i < fakeNodes.length - 1 && (
+                <div className="w-px bg-indigo-200 my-1" style={{ height: "28px" }} />
+              )}
+            </div>
+            <div className="flex-1 pb-3">
+              <p className="text-sm font-medium text-gray-800">{node.label}</p>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                <span className="text-xs rounded-full bg-green-50 border border-green-200 text-green-700 px-2 py-0.5">
+                  ✓ 次へ進む
+                </span>
+                <span className="text-xs rounded-full bg-orange-50 border border-orange-200 text-orange-700 px-2 py-0.5">
+                  ✗ 断り対応
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ロックオーバーレイ */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/70 backdrop-blur-[2px]">
+        <div className="h-11 w-11 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center">
+          <LockIcon className="h-5 w-5 text-indigo-500" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-sm font-semibold text-gray-800">
+            会話フローはスタンダードプランで表示
+          </p>
+          <p className="text-xs text-gray-500">
+            分岐パターンと切り返しトークを含む完全版
+          </p>
+        </div>
+        <a
+          href="#pricing"
+          className="rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+        >
+          プランを見る
+        </a>
+      </div>
+    </div>
   );
 }
 
@@ -336,16 +446,20 @@ function CompanyAnalysisCard({ analysis }: { analysis: CompanyAnalysis }) {
 
 // ─── 電話スクリプト ────────────────────────────────────────
 
-function PhoneScriptView({ script }: { script: PhoneScript }) {
+function PhoneScriptView({ script, restrictions }: { script: PhoneScript; restrictions?: PlanRestrictions }) {
   return (
     <div className="space-y-7">
       <PhonePersonaCard persona={script.persona} />
 
       <div className="space-y-3">
         <SectionLabel label="会話フロー概要" />
-        <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-4">
-          <FlowChartView chart={script.flowChart} />
-        </div>
+        {restrictions?.flowChartLocked ? (
+          <FlowChartLocked />
+        ) : (
+          <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-4">
+            <FlowChartView chart={script.flowChart} />
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -469,12 +583,16 @@ export default function ScriptResult({ result }: { result: GenerateResult }) {
   const hasEmail = !!result.email;
   const [tab, setTab] = useState<"phone" | "email">(hasPhone ? "phone" : "email");
   const showTabs = hasPhone && hasEmail;
+  const restrictions = result.planRestrictions;
 
   return (
     <div className="space-y-6">
-      {result.companyAnalysis && (
+      {/* 企業分析：ロック or 通常表示 */}
+      {restrictions?.companyAnalysisLocked ? (
+        <CompanyAnalysisLocked />
+      ) : result.companyAnalysis ? (
         <CompanyAnalysisCard analysis={result.companyAnalysis} />
-      )}
+      ) : null}
 
       <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl shadow-indigo-100 border border-gray-100 overflow-hidden">
         <div className="border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-4">
@@ -501,7 +619,7 @@ export default function ScriptResult({ result }: { result: GenerateResult }) {
 
         <div className="p-6">
           {hasPhone && (!showTabs || tab === "phone") && result.phone && (
-            <PhoneScriptView script={result.phone} />
+            <PhoneScriptView script={result.phone} restrictions={restrictions} />
           )}
           {hasEmail && (!showTabs || tab === "email") && result.email && (
             <EmailScriptView script={result.email} />

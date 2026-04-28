@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ScriptResult from "@/app/components/ScriptResult";
+import AuthModal from "@/app/components/AuthModal";
 import type { GenerateRequest, GenerateResult } from "@/app/types/generate";
 
 const INDUSTRIES = [
@@ -73,18 +74,47 @@ function IndustrySelect({ name, label }: { name: string; label: string }) {
   );
 }
 
+type LimitInfo = {
+  remaining: number | null;
+  limit: number | null;
+  plan: "guest" | "free" | "standard";
+};
+
+function generateGuestToken(): string {
+  return (
+    "g_" +
+    Math.random().toString(36).slice(2, 10) +
+    Date.now().toString(36)
+  );
+}
+
 export default function ScriptForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [limitInfo, setLimitInfo] = useState<LimitInfo | null>(null);
+  const [guestToken, setGuestToken] = useState<string | null>(null);
+  const [authModal, setAuthModal] = useState<{ tab: "login" | "register" } | null>(null);
 
-  // ページ読み込み時に残り回数を取得
+  // ゲストトークン初期化 + 残り回数取得
   useEffect(() => {
-    fetch("/api/limit")
+    let token = localStorage.getItem("scriptai_guest_token");
+    if (!token) {
+      token = generateGuestToken();
+      localStorage.setItem("scriptai_guest_token", token);
+    }
+    setGuestToken(token);
+
+    fetch("/api/limit", { headers: { "x-guest-token": token } })
       .then((r) => r.json())
-      .then((data) => setRemaining(data.remaining))
-      .catch(() => {}); // 取得失敗時は非表示のまま（制限なしとして扱う）
+      .then((data) =>
+        setLimitInfo({
+          remaining: data.remaining,
+          limit: data.limit,
+          plan: data.plan,
+        })
+      )
+      .catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -108,24 +138,37 @@ export default function ScriptForm() {
       scriptType: fd.get("scriptType") as GenerateRequest["scriptType"],
     };
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (guestToken) headers["x-guest-token"] = guestToken;
+
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
         if (data.limitReached) {
-          // 制限到達：ボタンエリアのUIで表示するためremainingを0にセット
-          setRemaining(0);
+          setLimitInfo((prev) => (prev ? { ...prev, remaining: 0 } : null));
+          if (data.plan === "guest") {
+            setAuthModal({ tab: "register" });
+          }
         } else {
           setError(data.error ?? "エラーが発生しました");
         }
       } else {
         setResult(data);
-        // 成功後にローカルのカウンタを減らす
-        setRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
+        if (guestToken) {
+          localStorage.setItem("scriptai_guest_used", "true");
+        }
+        setLimitInfo((prev) =>
+          prev && prev.remaining !== null
+            ? { ...prev, remaining: Math.max(0, prev.remaining - 1) }
+            : prev
+        );
       }
     } catch {
       setError("通信エラーが発生しました。再試行してください。");
@@ -133,6 +176,81 @@ export default function ScriptForm() {
       setIsLoading(false);
     }
   }
+
+  function handleAuthSuccess() {
+    setAuthModal(null);
+    window.location.reload();
+  }
+
+  // 残り回数表示
+  function renderRemainingDisplay() {
+    if (!limitInfo) return null;
+    const { remaining, limit, plan } = limitInfo;
+    if (plan === "standard") {
+      return (
+        <p className="text-center text-sm font-medium text-indigo-600">
+          ✨ 無制限プラン
+        </p>
+      );
+    }
+    if (remaining === null || limit === null) return null;
+    const label =
+      plan === "guest"
+        ? `無料お試し: 残り${remaining}/${limit}回`
+        : `本日の残り: ${remaining}/${limit}回`;
+    return (
+      <p
+        className={`text-center text-sm ${
+          remaining === 0 ? "font-semibold text-red-500" : "text-gray-400"
+        }`}
+      >
+        {label}
+      </p>
+    );
+  }
+
+  // 制限到達時メッセージ
+  function renderLimitReached() {
+    if (!limitInfo || limitInfo.remaining !== 0) return null;
+    if (limitInfo.plan === "guest") {
+      return (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 space-y-3 text-center">
+          <p className="text-sm font-semibold text-blue-900">
+            続けて使うには無料アカウント登録が必要です
+          </p>
+          <p className="text-xs text-blue-700">
+            登録無料・メールアドレスのみ。登録後は1日2回まで使えます。
+          </p>
+          <button
+            type="button"
+            onClick={() => setAuthModal({ tab: "register" })}
+            className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+          >
+            無料登録して続ける
+          </button>
+        </div>
+      );
+    }
+    // free plan
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-1.5 text-center">
+        <p className="text-sm font-medium text-amber-800">
+          本日の無料枠を使い切りました。
+        </p>
+        <p className="text-xs text-gray-500">
+          スタンダードプラン（月額980円）なら無制限でご利用いただけます。{" "}
+          <a
+            href="#pricing"
+            className="text-indigo-600 underline hover:text-indigo-500 transition-colors"
+          >
+            料金プランを見る
+          </a>
+        </p>
+      </div>
+    );
+  }
+
+  const isLimitReached = limitInfo?.remaining === 0;
 
   return (
     <div className="space-y-8">
@@ -286,37 +404,10 @@ export default function ScriptForm() {
           </p>
         )}
 
-        {/* 残り回数 */}
-        {remaining !== null && (
-          <p
-            className={`text-center text-sm ${
-              remaining === 0
-                ? "text-red-500 font-semibold"
-                : "text-gray-400"
-            }`}
-          >
-            本日の残り生成回数: {remaining}/2回
-          </p>
-        )}
+        {renderRemainingDisplay()}
 
-        {/* 制限到達時：メッセージ表示。それ以外：送信ボタン表示 */}
-        {remaining === 0 ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-1.5 text-center">
-            <p className="text-sm font-medium text-amber-800">
-              本日の無料枠を使い切りました。毎日2回まで無料でお試しいただけます。
-            </p>
-            <p className="text-xs text-gray-500">
-              ※正式版では無制限でご利用いただけます。{" "}
-              <a
-                href="https://forms.gle/xPoQcpJBbGiiFGY39"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-600 underline hover:text-indigo-500 transition-colors"
-              >
-                無制限版登録フォーム
-              </a>
-            </p>
-          </div>
+        {isLimitReached ? (
+          renderLimitReached()
         ) : (
           <button
             type="submit"
@@ -328,11 +419,8 @@ export default function ScriptForm() {
                 <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle
                     className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
+                    cx="12" cy="12" r="10"
+                    stroke="currentColor" strokeWidth="4"
                   />
                   <path
                     className="opacity-75"
@@ -361,6 +449,14 @@ export default function ScriptForm() {
           </a>
         </p>
       </form>
+
+      {authModal && (
+        <AuthModal
+          defaultTab={authModal.tab}
+          onSuccess={handleAuthSuccess}
+          onClose={() => setAuthModal(null)}
+        />
+      )}
 
       {isLoading && (
         <div className="w-full max-w-2xl mx-auto rounded-2xl border border-indigo-100 bg-white p-10 flex flex-col items-center gap-4 shadow-xl shadow-indigo-100">

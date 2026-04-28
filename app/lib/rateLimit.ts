@@ -1,72 +1,92 @@
 import { Redis } from "@upstash/redis";
 
-export const DAILY_LIMIT = 2;
-
-// Vercel KV / Upstash どちらの環境変数にも対応
 const redisUrl =
   process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
 const redisToken =
   process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-
-// Redis クライアント（env未設定時はnull → メモリフォールバック）
 const redis =
   redisUrl && redisToken
     ? new Redis({ url: redisUrl, token: redisToken })
     : null;
 
-// Redis未設定時（ローカル開発）のインメモリフォールバック
 const mem = new Map<string, number>();
 
-/** UTC日付キー（0時リセット） */
+export const FREE_DAILY_LIMIT = 2;   // フリープラン: 1日2回
+export const GUEST_TOTAL_LIMIT = 1;  // 未ログイン: 合計1回
+
 function dateKey(): string {
-  return new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+  return new Date().toISOString().split("T")[0]; // UTC "YYYY-MM-DD"
 }
 
-/** リクエストからクライアントIPを取得 */
 export function getClientIP(request: Request): string {
   return (
     request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown"
   );
 }
 
-/** 今日の残り生成回数を返す（消費しない） */
-export async function getRemainingCount(ip: string): Promise<number> {
-  const k = `rl:${ip}:${dateKey()}`;
+// ── Redis ヘルパー ─────────────────────────────────────────
+
+async function kvGet(key: string): Promise<number> {
   if (redis) {
     try {
-      const count = (await redis.get<number>(k)) ?? 0;
-      return Math.max(0, DAILY_LIMIT - count);
+      return (await redis.get<number>(key)) ?? 0;
     } catch {
-      /* fallthrough to memory */
+      /* fallthrough */
     }
   }
-  return Math.max(0, DAILY_LIMIT - (mem.get(k) ?? 0));
+  return mem.get(key) ?? 0;
 }
 
-/** 1回消費して残り回数と許可フラグを返す */
-export async function checkAndConsume(
-  ip: string
-): Promise<{ allowed: boolean; remaining: number }> {
-  const k = `rl:${ip}:${dateKey()}`;
-  let count: number;
-
+async function kvIncr(key: string, ttlSeconds?: number): Promise<number> {
   if (redis) {
     try {
-      count = await redis.incr(k);
-      // 初回のみTTLを48時間に設定（翌日の未使用キーを自動削除）
-      if (count === 1) await redis.expire(k, 48 * 3600);
+      const n = await redis.incr(key);
+      if (n === 1 && ttlSeconds) await redis.expire(key, ttlSeconds);
+      return n;
     } catch {
-      count = (mem.get(k) ?? 0) + 1;
-      mem.set(k, count);
+      /* fallthrough */
     }
-  } else {
-    // Redis未設定（ローカル開発）はメモリで代替
-    count = (mem.get(k) ?? 0) + 1;
-    mem.set(k, count);
   }
+  const n = (mem.get(key) ?? 0) + 1;
+  mem.set(key, n);
+  return n;
+}
 
-  return {
-    allowed: count <= DAILY_LIMIT,
-    remaining: Math.max(0, DAILY_LIMIT - count),
-  };
+// ── ゲスト（未ログイン）────────────────────────────────────
+
+/** ゲストの残り回数を取得（消費しない） */
+export async function getGuestRemaining(guestToken: string): Promise<number> {
+  const count = await kvGet(`guest:${guestToken}`);
+  return Math.max(0, GUEST_TOTAL_LIMIT - count);
+}
+
+/** ゲストの制限チェック + 消費 */
+export async function checkAndConsumeGuest(
+  guestToken: string
+): Promise<{ allowed: boolean; remaining: number }> {
+  const k = `guest:${guestToken}`;
+  const current = await kvGet(k);
+  if (current >= GUEST_TOTAL_LIMIT) {
+    return { allowed: false, remaining: 0 };
+  }
+  await kvIncr(k, 90 * 24 * 3600); // 90日TTL
+  return { allowed: true, remaining: 0 }; // 使用後残り0
+}
+
+// ── フリープラン ───────────────────────────────────────────
+
+/** フリープランの残り回数を取得（消費しない） */
+export async function getFreeUserRemaining(email: string): Promise<number> {
+  const count = await kvGet(`rl:user:${email}:${dateKey()}`);
+  return Math.max(0, FREE_DAILY_LIMIT - count);
+}
+
+/** フリープランの制限チェック + 消費 */
+export async function checkAndConsumeFreeUser(
+  email: string
+): Promise<{ allowed: boolean; remaining: number }> {
+  const k = `rl:user:${email}:${dateKey()}`;
+  const count = await kvIncr(k, 48 * 3600);
+  const remaining = Math.max(0, FREE_DAILY_LIMIT - count);
+  return { allowed: count <= FREE_DAILY_LIMIT, remaining };
 }

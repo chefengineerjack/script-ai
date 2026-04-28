@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { GenerateRequest, GenerateResult, CompanyAnalysis } from "@/app/types/generate";
-import { getClientIP, checkAndConsume } from "@/app/lib/rateLimit";
+import { getUserFromRequest } from "@/app/lib/auth";
+import { checkAndConsumeGuest, checkAndConsumeFreeUser } from "@/app/lib/rateLimit";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -393,27 +394,58 @@ ${companyLine}- ターゲット部門: ${dept}
 
 export async function POST(request: Request) {
   try {
+    // ── 認証・プラン判定 ────────────────────────────────────
+    const user = await getUserFromRequest(request);
+    const isStandard = user?.plan === "standard";
+    const isFree = user?.plan === "free";
+    const isGuest = !user;
+    // フリー or ゲスト → 機能制限あり
+    const isFreePlan = isGuest || isFree;
+
     // ── レート制限チェック ───────────────────────────────────
-    const ip = getClientIP(request);
-    const { allowed, remaining } = await checkAndConsume(ip);
-    if (!allowed) {
-      return Response.json(
-        {
-          error:
-            "本日の無料枠を使い切りました。毎日2回まで無料でお試しいただけます。",
-          limitReached: true,
-          remaining: 0,
-        },
-        { status: 429 }
-      );
+    if (isStandard) {
+      // 無制限：制限チェックなし
+    } else if (isFree) {
+      const { allowed } = await checkAndConsumeFreeUser(user.email);
+      if (!allowed) {
+        return Response.json(
+          {
+            error:
+              "本日の無料枠を使い切りました。スタンダードプラン（月額980円）なら無制限でご利用いただけます。",
+            limitReached: true,
+            remaining: 0,
+            plan: "free",
+          },
+          { status: 429 }
+        );
+      }
+    } else {
+      // ゲスト
+      const guestToken = request.headers.get("x-guest-token") ?? "unknown";
+      const { allowed } = await checkAndConsumeGuest(guestToken);
+      if (!allowed) {
+        return Response.json(
+          {
+            error:
+              "無料お試しの1回を使い切りました。続けて使うには無料アカウント登録が必要です。",
+            limitReached: true,
+            remaining: 0,
+            plan: "guest",
+          },
+          { status: 429 }
+        );
+      }
     }
 
     const body: GenerateRequest = await request.json();
-
     const dept = body.targetDepartment || "各部門";
+
+    // フリー・ゲストは企業分析をスキップ（APIコスト節約）
     const [webInfo, companyAnalysis] = await Promise.all([
       body.webSearch ? searchProductInfo(body.product) : Promise.resolve(null),
-      body.targetCompany ? searchCompanyInfo(body.targetCompany, dept) : Promise.resolve(null),
+      !isFreePlan && body.targetCompany
+        ? searchCompanyInfo(body.targetCompany, dept)
+        : Promise.resolve(null),
     ]);
 
     let result: GenerateResult;
@@ -434,6 +466,12 @@ export async function POST(request: Request) {
     if (companyAnalysis) {
       result.companyAnalysis = companyAnalysis;
     }
+
+    // プラン制限情報をレスポンスに付加
+    result.planRestrictions = {
+      companyAnalysisLocked: isFreePlan && !!body.targetCompany,
+      flowChartLocked: isFreePlan,
+    };
 
     return Response.json(result);
   } catch (err) {

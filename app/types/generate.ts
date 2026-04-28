@@ -116,10 +116,18 @@ export type CompanyAnalysis = {
   approachAdvice: string;
 };
 
+// ── Plan restrictions ──────────────────────────────────────
+
+export type PlanRestrictions = {
+  companyAnalysisLocked: boolean;
+  flowChartLocked: boolean;
+};
+
 // ── Result ─────────────────────────────────────────────────
 
 export type GenerateResult = {
   phone?: PhoneScript;
   email?: EmailScript;
   companyAnalysis?: CompanyAnalysis;
+  planRestrictions?: PlanRestrictions;
 };
