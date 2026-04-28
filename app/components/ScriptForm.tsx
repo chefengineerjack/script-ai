@@ -145,6 +145,25 @@ export default function ScriptForm() {
           <p className="text-sm text-gray-500">必要事項を入力してスクリプトを生成します</p>
         </div>
 
+        {/* 上部：無制限版登録バナー */}
+        <a
+          href="https://forms.gle/xPoQcpJBbGiiFGY39"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-white shadow-sm hover:from-indigo-500 hover:to-violet-500 transition-all group"
+        >
+          <div className="space-y-0.5">
+            <p className="text-[11px] font-medium text-indigo-200">現在 無料トライアル中（1日2回）</p>
+            <p className="text-sm font-semibold">無制限版登録フォーム</p>
+          </div>
+          <svg
+            className="h-5 w-5 shrink-0 opacity-80 group-hover:translate-x-0.5 transition-transform"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <IndustrySelect name="ownIndustry" label="自分の業種" />
           <IndustrySelect name="targetIndustry" label="ターゲットの業種" />
@@ -294,7 +313,7 @@ export default function ScriptForm() {
                 rel="noopener noreferrer"
                 className="text-indigo-600 underline hover:text-indigo-500 transition-colors"
               >
-                事前登録はこちら
+                無制限版登録フォーム
               </a>
             </p>
           </div>
@@ -328,6 +347,19 @@ export default function ScriptForm() {
             )}
           </button>
         )}
+
+        {/* 下部：無制限版登録リンク（常時表示） */}
+        <p className="text-center text-xs text-gray-400">
+          正式版では無制限でご利用いただけます。{" "}
+          <a
+            href="https://forms.gle/xPoQcpJBbGiiFGY39"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-indigo-500 underline underline-offset-2 hover:text-indigo-600 transition-colors"
+          >
+            無制限版登録フォーム
+          </a>
+        </p>
       </form>
 
       {isLoading && (
