@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 
-export const DAILY_LIMIT = 2;
+export const DAILY_LIMIT = 3;
 
 // Vercel KV / Upstash どちらの環境変数にも対応
 const redisUrl =
