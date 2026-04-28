@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ScriptResult from "@/app/components/ScriptResult";
 import type { GenerateRequest, GenerateResult } from "@/app/types/generate";
 
@@ -77,6 +77,15 @@ export default function ScriptForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<GenerateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  // ページ読み込み時に残り回数を取得
+  useEffect(() => {
+    fetch("/api/limit")
+      .then((r) => r.json())
+      .then((data) => setRemaining(data.remaining))
+      .catch(() => {}); // 取得失敗時は非表示のまま（制限なしとして扱う）
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -107,9 +116,16 @@ export default function ScriptForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "エラーが発生しました");
+        if (data.limitReached) {
+          // 制限到達：ボタンエリアのUIで表示するためremainingを0にセット
+          setRemaining(0);
+        } else {
+          setError(data.error ?? "エラーが発生しました");
+        }
       } else {
         setResult(data);
+        // 成功後にローカルのカウンタを減らす
+        setRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
       }
     } catch {
       setError("通信エラーが発生しました。再試行してください。");
@@ -251,34 +267,67 @@ export default function ScriptForm() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full rounded-xl bg-indigo-600 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-              生成中...
-            </span>
-          ) : (
-            "スクリプトを生成する"
-          )}
-        </button>
+        {/* 残り回数 */}
+        {remaining !== null && (
+          <p
+            className={`text-center text-sm ${
+              remaining === 0
+                ? "text-red-500 font-semibold"
+                : "text-gray-400"
+            }`}
+          >
+            本日の残り生成回数: {remaining}/2回
+          </p>
+        )}
+
+        {/* 制限到達時：メッセージ表示。それ以外：送信ボタン表示 */}
+        {remaining === 0 ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-1.5 text-center">
+            <p className="text-sm font-medium text-amber-800">
+              本日の無料枠を使い切りました。毎日2回まで無料でお試しいただけます。
+            </p>
+            <p className="text-xs text-gray-500">
+              ※正式版では無制限でご利用いただけます。{" "}
+              <a
+                href="https://forms.gle/XXXXXXXXXXXXXXXX"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-600 underline hover:text-indigo-500 transition-colors"
+              >
+                事前登録はこちら
+              </a>
+            </p>
+          </div>
+        ) : (
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-xl bg-indigo-600 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                生成中...
+              </span>
+            ) : (
+              "スクリプトを生成する"
+            )}
+          </button>
+        )}
       </form>
 
       {isLoading && (

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { GenerateRequest, GenerateResult, CompanyAnalysis } from "@/app/types/generate";
+import { getClientIP, checkAndConsume } from "@/app/lib/rateLimit";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -392,6 +393,21 @@ ${companyLine}- ターゲット部門: ${dept}
 
 export async function POST(request: Request) {
   try {
+    // ── レート制限チェック ───────────────────────────────────
+    const ip = getClientIP(request);
+    const { allowed, remaining } = await checkAndConsume(ip);
+    if (!allowed) {
+      return Response.json(
+        {
+          error:
+            "本日の無料枠を使い切りました。毎日2回まで無料でお試しいただけます。",
+          limitReached: true,
+          remaining: 0,
+        },
+        { status: 429 }
+      );
+    }
+
     const body: GenerateRequest = await request.json();
 
     const dept = body.targetDepartment || "各部門";
