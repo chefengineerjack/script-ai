@@ -153,7 +153,7 @@ export default function ScriptForm() {
           className="flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-white shadow-sm hover:from-indigo-500 hover:to-violet-500 transition-all group"
         >
           <div className="space-y-0.5">
-            <p className="text-[11px] font-medium text-indigo-200">現在 無料トライアル中（1日3回）</p>
+            <p className="text-[11px] font-medium text-indigo-200">現在 無料トライアル中（1日2回）</p>
             <p className="text-sm font-semibold">無制限版登録フォーム</p>
           </div>
           <svg
@@ -295,7 +295,7 @@ export default function ScriptForm() {
                 : "text-gray-400"
             }`}
           >
-            本日の残り生成回数: {remaining}/3回
+            本日の残り生成回数: {remaining}/2回
           </p>
         )}
 
@@ -303,7 +303,7 @@ export default function ScriptForm() {
         {remaining === 0 ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-1.5 text-center">
             <p className="text-sm font-medium text-amber-800">
-              本日の無料枠を使い切りました。毎日3回まで無料でお試しいただけます。
+              本日の無料枠を使い切りました。毎日2回まで無料でお試しいただけます。
             </p>
             <p className="text-xs text-gray-500">
               ※正式版では無制限でご利用いただけます。{" "}

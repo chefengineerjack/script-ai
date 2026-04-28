@@ -24,7 +24,7 @@ const PLANS: Plan[] = [
     period: "",
     tagline: "まずは試してみたい方に",
     features: [
-      { label: "1日3回まで生成", included: true },
+      { label: "1日2回まで生成", included: true },
       { label: "電話スクリプト", included: true },
       { label: "メール営業文面", included: true },
       { label: "企業分析機能", included: false },
