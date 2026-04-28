@@ -182,14 +182,36 @@ export default function ScriptForm() {
     window.location.reload();
   }
 
+  // Stripe Checkout を起動
+  async function handleUpgradeCheckout() {
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const data = await res.json();
+      if (res.status === 401) {
+        setAuthModal({ tab: "register" });
+        return;
+      }
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      // 無視
+    }
+  }
+
   // 残り回数表示
   function renderRemainingDisplay() {
     if (!limitInfo) return null;
     const { remaining, limit, plan } = limitInfo;
     if (plan === "standard") {
+      if (remaining === null || limit === null) return null;
       return (
-        <p className="text-center text-sm font-medium text-indigo-600">
-          ✨ 無制限プラン
+        <p
+          className={`text-center text-sm ${
+            remaining === 0 ? "font-semibold text-red-500" : "text-indigo-600 font-medium"
+          }`}
+        >
+          {remaining === 0 ? "今月の上限に達しました" : `✨ 今月の残り: ${remaining}/${limit}回`}
         </p>
       );
     }
@@ -212,7 +234,9 @@ export default function ScriptForm() {
   // 制限到達時メッセージ
   function renderLimitReached() {
     if (!limitInfo || limitInfo.remaining !== 0) return null;
-    if (limitInfo.plan === "guest") {
+    const { plan } = limitInfo;
+
+    if (plan === "guest") {
       return (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 space-y-3 text-center">
           <p className="text-sm font-semibold text-blue-900">
@@ -231,20 +255,35 @@ export default function ScriptForm() {
         </div>
       );
     }
-    // free plan
-    return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-1.5 text-center">
-        <p className="text-sm font-medium text-amber-800">
-          本日の無料枠を使い切りました。
-        </p>
-        <p className="text-xs text-gray-500">
-          スタンダードプラン（月額980円）なら無制限でご利用いただけます。{" "}
-          <a
-            href="#pricing"
-            className="text-indigo-600 underline hover:text-indigo-500 transition-colors"
+
+    if (plan === "free") {
+      return (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-3 text-center">
+          <p className="text-sm font-medium text-amber-800">
+            本日の無料枠を使い切りました。
+          </p>
+          <p className="text-xs text-gray-500 mb-1">
+            スタンダードプラン（月額980円）なら月30回、企業分析・フローチャートも使えます。
+          </p>
+          <button
+            type="button"
+            onClick={handleUpgradeCheckout}
+            className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
           >
-            料金プランを見る
-          </a>
+            スタンダードプランにアップグレード
+          </button>
+        </div>
+      );
+    }
+
+    // standard plan limit
+    return (
+      <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-center">
+        <p className="text-sm font-medium text-gray-700">
+          今月の生成回数（30回）を使い切りました。
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          来月1日（UTC）にリセットされます。
         </p>
       </div>
     );

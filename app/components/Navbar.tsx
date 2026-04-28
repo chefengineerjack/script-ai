@@ -50,9 +50,20 @@ export default function Navbar() {
 
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="hidden sm:block text-xs text-gray-400 max-w-[130px] truncate">
-                  {user.email}
-                </span>
+                <div className="hidden sm:flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400 max-w-[120px] truncate">
+                    {user.email}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      user.plan === "standard"
+                        ? "bg-indigo-100 text-indigo-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {user.plan === "standard" ? "スタンダード" : "フリー"}
+                  </span>
+                </div>
                 <button
                   onClick={handleLogout}
                   className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-colors"

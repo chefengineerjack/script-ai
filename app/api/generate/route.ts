@@ -1,7 +1,12 @@
 import OpenAI from "openai";
 import type { GenerateRequest, GenerateResult, CompanyAnalysis } from "@/app/types/generate";
-import { getUserFromRequest } from "@/app/lib/auth";
-import { checkAndConsumeGuest, checkAndConsumeFreeUser } from "@/app/lib/rateLimit";
+import { getUserFromRequest, signToken, setAuthCookie } from "@/app/lib/auth";
+import { getUserByEmail } from "@/app/lib/user";
+import {
+  checkAndConsumeGuest,
+  checkAndConsumeFreeUser,
+  checkAndConsumeStandardUser,
+} from "@/app/lib/rateLimit";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -394,24 +399,47 @@ ${companyLine}- ターゲット部門: ${dept}
 
 export async function POST(request: Request) {
   try {
-    // ── 認証・プラン判定 ────────────────────────────────────
-    const user = await getUserFromRequest(request);
-    const isStandard = user?.plan === "standard";
-    const isFree = user?.plan === "free";
-    const isGuest = !user;
-    // フリー or ゲスト → 機能制限あり
-    const isFreePlan = isGuest || isFree;
+    // ── 認証・プラン判定（Redisから最新プランを取得）──────────
+    const jwtUser = await getUserFromRequest(request);
+    let effectivePlan: "standard" | "free" | "guest" = "guest";
+    let userEmail: string | null = null;
+
+    if (jwtUser) {
+      const dbUser = await getUserByEmail(jwtUser.email);
+      const freshPlan = dbUser?.plan ?? jwtUser.plan;
+      effectivePlan = freshPlan;
+      userEmail = jwtUser.email;
+      // プランが変わっていたらJWTを再発行
+      if (dbUser && dbUser.plan !== jwtUser.plan) {
+        const token = await signToken({ email: dbUser.email, plan: dbUser.plan });
+        await setAuthCookie(token);
+      }
+    }
+
+    const isFreePlan = effectivePlan === "guest" || effectivePlan === "free";
 
     // ── レート制限チェック ───────────────────────────────────
-    if (isStandard) {
-      // 無制限：制限チェックなし
-    } else if (isFree) {
-      const { allowed } = await checkAndConsumeFreeUser(user.email);
+    if (effectivePlan === "standard") {
+      const { allowed } = await checkAndConsumeStandardUser(userEmail!);
       if (!allowed) {
         return Response.json(
           {
             error:
-              "本日の無料枠を使い切りました。スタンダードプラン（月額980円）なら無制限でご利用いただけます。",
+              "今月の生成回数（30回）を使い切りました。来月1日にリセットされます。",
+            limitReached: true,
+            remaining: 0,
+            plan: "standard",
+          },
+          { status: 429 }
+        );
+      }
+    } else if (effectivePlan === "free") {
+      const { allowed } = await checkAndConsumeFreeUser(userEmail!);
+      if (!allowed) {
+        return Response.json(
+          {
+            error:
+              "本日の無料枠を使い切りました。スタンダードプラン（月額980円）なら月30回ご利用いただけます。",
             limitReached: true,
             remaining: 0,
             plan: "free",

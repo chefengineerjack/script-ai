@@ -11,11 +11,17 @@ const redis =
 
 const mem = new Map<string, number>();
 
-export const FREE_DAILY_LIMIT = 2;   // フリープラン: 1日2回
-export const GUEST_TOTAL_LIMIT = 1;  // 未ログイン: 合計1回
+export const FREE_DAILY_LIMIT = 2;       // フリープラン: 1日2回
+export const GUEST_TOTAL_LIMIT = 1;      // 未ログイン: 合計1回
+export const STANDARD_MONTHLY_LIMIT = 30; // スタンダードプラン: 月30回
 
 function dateKey(): string {
   return new Date().toISOString().split("T")[0]; // UTC "YYYY-MM-DD"
+}
+
+function monthKey(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`; // "YYYY-MM"
 }
 
 export function getClientIP(request: Request): string {
@@ -89,4 +95,22 @@ export async function checkAndConsumeFreeUser(
   const count = await kvIncr(k, 48 * 3600);
   const remaining = Math.max(0, FREE_DAILY_LIMIT - count);
   return { allowed: count <= FREE_DAILY_LIMIT, remaining };
+}
+
+// ── スタンダードプラン ─────────────────────────────────────
+
+/** スタンダードプランの残り回数を取得（消費しない） */
+export async function getStandardUserRemaining(email: string): Promise<number> {
+  const count = await kvGet(`rl:standard:${email}:${monthKey()}`);
+  return Math.max(0, STANDARD_MONTHLY_LIMIT - count);
+}
+
+/** スタンダードプランの制限チェック + 消費 */
+export async function checkAndConsumeStandardUser(
+  email: string
+): Promise<{ allowed: boolean; remaining: number }> {
+  const k = `rl:standard:${email}:${monthKey()}`;
+  const count = await kvIncr(k, 35 * 24 * 3600); // 35日TTL（翌月まで保持）
+  const remaining = Math.max(0, STANDARD_MONTHLY_LIMIT - count);
+  return { allowed: count <= STANDARD_MONTHLY_LIMIT, remaining };
 }

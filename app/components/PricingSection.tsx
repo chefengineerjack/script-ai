@@ -1,4 +1,4 @@
-const FORM_URL = "https://forms.gle/xPoQcpJBbGiiFGY39";
+import CheckoutButton from "@/app/components/CheckoutButton";
 
 type Feature = { label: string; included: boolean };
 
@@ -14,6 +14,7 @@ type Plan = {
   highlight: boolean;
   comingSoon: boolean;
   badge: string | null;
+  useCheckout?: boolean;
 };
 
 const PLANS: Plan[] = [
@@ -50,7 +51,8 @@ const PLANS: Plan[] = [
       { label: "分岐フローチャート", included: true },
     ],
     ctaLabel: "月額980円で始める",
-    ctaHref: FORM_URL,
+    ctaHref: null,
+    useCheckout: true,
     highlight: true,
     comingSoon: false,
     badge: "おすすめ",
@@ -175,7 +177,12 @@ function PlanCard({ plan }: { plan: Plan }) {
       </ul>
 
       {/* CTAボタン */}
-      {plan.ctaHref ? (
+      {plan.useCheckout ? (
+        <CheckoutButton
+          label={plan.ctaLabel}
+          className="block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+        />
+      ) : plan.ctaHref ? (
         <a
           href={plan.ctaHref}
           target="_blank"

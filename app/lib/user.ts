@@ -17,6 +17,8 @@ export type User = {
   email: string;
   passwordHash: string;
   plan: UserPlan;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
   createdAt: string;
 };
 
@@ -53,4 +55,59 @@ export async function createUser(
   }
   mem.set(k, user);
   return user;
+}
+
+/** プランを更新し、Stripe顧客IDの逆引きマップも保存 */
+export async function updateUserPlan(
+  email: string,
+  plan: UserPlan,
+  stripeCustomerId?: string,
+  stripeSubscriptionId?: string
+): Promise<void> {
+  const existing = await getUserByEmail(email);
+  if (!existing) return;
+
+  const updated: User = {
+    ...existing,
+    plan,
+    ...(stripeCustomerId && { stripeCustomerId }),
+    ...(stripeSubscriptionId && { stripeSubscriptionId }),
+  };
+
+  const k = `user:${email.toLowerCase()}`;
+  if (redis) {
+    try {
+      await redis.set(k, updated);
+      // 逆引き: stripe_customer:{customerId} → email
+      if (stripeCustomerId) {
+        await redis.set(
+          `stripe_customer:${stripeCustomerId}`,
+          email.toLowerCase()
+        );
+      }
+      return;
+    } catch {
+      /* fallthrough */
+    }
+  }
+  mem.set(k, updated);
+}
+
+/** Stripe顧客IDからユーザーを検索（サブスクリプション解約時に使用） */
+export async function getUserByStripeCustomerId(
+  customerId: string
+): Promise<User | null> {
+  if (redis) {
+    try {
+      const email = await redis.get<string>(`stripe_customer:${customerId}`);
+      if (email) return getUserByEmail(email);
+    } catch {
+      /* fallthrough */
+    }
+  }
+  // メモリフォールバック
+  for (const user of mem.values()) {
+    if (user.stripeCustomerId === customerId) return user;
+  }
+  return null;
 }

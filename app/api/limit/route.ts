@@ -1,38 +1,44 @@
 import { getUserFromRequest } from "@/app/lib/auth";
+import { getUserByEmail } from "@/app/lib/user";
 import {
   getGuestRemaining,
   getFreeUserRemaining,
+  getStandardUserRemaining,
   FREE_DAILY_LIMIT,
   GUEST_TOTAL_LIMIT,
+  STANDARD_MONTHLY_LIMIT,
 } from "@/app/lib/rateLimit";
 
 export async function GET(request: Request) {
-  const user = await getUserFromRequest(request);
+  const jwtUser = await getUserFromRequest(request);
 
-  // スタンダードプラン：無制限
-  if (user?.plan === "standard") {
-    return Response.json({
-      remaining: null,
-      limit: null,
-      plan: "standard",
-      email: user.email,
-    });
-  }
+  if (jwtUser) {
+    // Redisから最新プランを取得
+    const dbUser = await getUserByEmail(jwtUser.email);
+    const plan = dbUser?.plan ?? jwtUser.plan;
 
-  // フリープラン
-  if (user?.plan === "free") {
-    const remaining = await getFreeUserRemaining(user.email);
+    if (plan === "standard") {
+      const remaining = await getStandardUserRemaining(jwtUser.email);
+      return Response.json({
+        remaining,
+        limit: STANDARD_MONTHLY_LIMIT,
+        plan: "standard",
+        email: jwtUser.email,
+      });
+    }
+
+    // フリープラン
+    const remaining = await getFreeUserRemaining(jwtUser.email);
     return Response.json({
       remaining,
       limit: FREE_DAILY_LIMIT,
       plan: "free",
-      email: user.email,
+      email: jwtUser.email,
     });
   }
 
   // ゲスト（未ログイン）
-  const guestToken =
-    request.headers.get("x-guest-token") ?? "unknown";
+  const guestToken = request.headers.get("x-guest-token") ?? "unknown";
   const remaining = await getGuestRemaining(guestToken);
   return Response.json({
     remaining,
