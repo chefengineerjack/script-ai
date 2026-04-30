@@ -1,6 +1,7 @@
 import Navbar from "@/app/components/Navbar";
 import ScriptForm from "@/app/components/ScriptForm";
 import PricingSection from "@/app/components/PricingSection";
+import Footer from "@/app/components/Footer";
 
 export default function Home() {
   return (
@@ -36,6 +37,8 @@ export default function Home() {
       <div className="bg-white/50 backdrop-blur-sm">
         <PricingSection />
       </div>
+
+      <Footer />
     </main>
   );
 }
