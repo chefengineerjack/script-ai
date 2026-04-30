@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import tips, { type Tip } from "@/app/data/tips";
 
-const AUTO_ROTATE_MS = 8000;
+const AUTO_ROTATE_MS = 12000;
 
 function pickRandom(excludeId?: number): Tip {
   const pool = excludeId !== undefined
