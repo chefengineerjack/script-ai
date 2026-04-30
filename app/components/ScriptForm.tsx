@@ -507,7 +507,7 @@ export default function ScriptForm() {
       {isLoading && (
         <div className="w-full max-w-2xl mx-auto rounded-2xl border border-indigo-100 bg-white p-10 flex flex-col items-center gap-4 shadow-xl shadow-indigo-100">
           <div className="h-10 w-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
-          <p className="text-sm text-gray-500">AIがスクリプトを生成しています...</p>
+          <p className="text-sm text-gray-500">生成中・・・　営業Tipsを👇に掲載中</p>
         </div>
       )}
 
