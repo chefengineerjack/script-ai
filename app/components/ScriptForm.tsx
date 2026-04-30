@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ScriptResult from "@/app/components/ScriptResult";
 import AuthModal from "@/app/components/AuthModal";
+import LoadingTips from "@/app/components/LoadingTips";
 import type { GenerateRequest, GenerateResult } from "@/app/types/generate";
 
 const INDUSTRIES = [
@@ -95,6 +96,9 @@ export default function ScriptForm() {
   const [limitInfo, setLimitInfo] = useState<LimitInfo | null>(null);
   const [guestToken, setGuestToken] = useState<string | null>(null);
   const [authModal, setAuthModal] = useState<{ tab: "login" | "register" } | null>(null);
+  // Tips 表示制御：初回生成後から表示し、生成のたびに key を変えてリセット
+  const [tipsVisible, setTipsVisible] = useState(false);
+  const [generationKey, setGenerationKey] = useState(0);
 
   // ゲストトークン初期化 + 残り回数取得
   useEffect(() => {
@@ -122,6 +126,9 @@ export default function ScriptForm() {
     setIsLoading(true);
     setResult(null);
     setError(null);
+    // Tips を表示し、生成のたびに新しい Tips に切り替える
+    setTipsVisible(true);
+    setGenerationKey((k) => k + 1);
 
     const fd = new FormData(e.currentTarget);
     const targetCompany = (fd.get("targetCompany") as string).trim();
@@ -502,6 +509,11 @@ export default function ScriptForm() {
           <div className="h-10 w-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
           <p className="text-sm text-gray-500">AIがスクリプトを生成しています...</p>
         </div>
+      )}
+
+      {/* Tips カード：ローディング中は自動回転、完了後は最後の Tips を静止表示 */}
+      {tipsVisible && (
+        <LoadingTips key={generationKey} isLoading={isLoading} />
       )}
 
       {result && !isLoading && <ScriptResult result={result} />}
