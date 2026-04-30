@@ -399,6 +399,9 @@ ${companyLine}- ターゲット部門: ${dept}
 
 export async function POST(request: Request) {
   try {
+    // ── デモモード（ローカル開発・スクリーンショット用）────────
+    const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
     // ── 認証・プラン判定（Redisから最新プランを取得）──────────
     const jwtUser = await getUserFromRequest(request);
     let effectivePlan: "standard" | "free" | "guest" = "guest";
@@ -416,10 +419,17 @@ export async function POST(request: Request) {
       }
     }
 
+    // デモモード時はスタンダードプランとして扱う
+    if (isDemoMode) {
+      effectivePlan = "standard";
+    }
+
     const isFreePlan = effectivePlan === "guest" || effectivePlan === "free";
 
-    // ── レート制限チェック ───────────────────────────────────
-    if (effectivePlan === "standard") {
+    // ── レート制限チェック（デモモード時はスキップ）────────────
+    if (isDemoMode) {
+      // スキップ
+    } else if (effectivePlan === "standard") {
       const { allowed } = await checkAndConsumeStandardUser(userEmail!);
       if (!allowed) {
         return Response.json(

@@ -10,6 +10,16 @@ import {
 } from "@/app/lib/rateLimit";
 
 export async function GET(request: Request) {
+  // デモモード時は制限なしのスタンダードプランを返す
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+    return Response.json({
+      remaining: null,
+      limit: null,
+      plan: "standard",
+      email: null,
+    });
+  }
+
   const jwtUser = await getUserFromRequest(request);
 
   if (jwtUser) {
