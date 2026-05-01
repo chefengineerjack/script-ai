@@ -6,6 +6,7 @@ export type Tip = {
   category: string;
   title: string;
   body: string;
+  link?: string;
 };
 
 const tips: Tip[] = [
@@ -14,30 +15,35 @@ const tips: Tip[] = [
     category: "営業フレームワーク",
     title: "SPIN話法の基本",
     body: "SPIN話法は「状況質問→問題質問→示唆質問→解決質問」の4ステップで構成されます。いきなり提案せず、質問を重ねて顧客自身に課題の深刻さと解決策の必要性を気づかせることが、成約率を飛躍的に高める鍵になります。ぜひスクリプトに組み込んでみてください。",
+    link: "/guides/spin-selling-guide.html",
   },
   {
     id: 2,
     category: "営業フレームワーク",
     title: "BANTで見極める商談品質",
     body: "Budget（予算）・Authority（決裁権）・Need（必要性）・Timeline（導入時期）の4要素を初回商談で必ずヒアリングしましょう。全要素が揃った案件を最優先にすることで、限られたリソースを確度の高い商談に集中でき、チーム全体の営業効率が大幅に改善されます。",
+    link: "/guides/bant-guide.html",
   },
   {
     id: 3,
     category: "営業フレームワーク",
     title: "チャレンジャーセールスとは",
     body: "調査によるとトップ営業の約40%が「チャレンジャー型」に分類されます。顧客に業界の新しい視点や知見を積極的に提供し、現状維持のリスクを具体的に気づかせることで、単なる御用聞きとは一線を画す信頼関係を構築できるのが最大の強みです。",
+    link: "/guides/challenger-sales-guide.html",
   },
   {
     id: 4,
     category: "営業フレームワーク",
     title: "MEDDICで大型案件攻略",
     body: "大型商談ではMEDDICフレームワークが有効です。Metrics（成功指標）・Economic Buyer（経済的意思決定者）・Decision Criteria（判断基準）などを体系的に整理することで、複雑な意思決定プロセスを可視化し、受注確度を確実に高められます。",
+    link: "/guides/meddic-guide.html",
   },
   {
     id: 5,
     category: "営業フレームワーク",
     title: "PASONAで提案を構成する",
     body: "Problem（問題提起）→Agitation（問題の深掘り）→Solution（解決策）→Narrowing（絞込み）→Action（行動喚起）の流れで提案を組み立てましょう。この順序に沿うことで、顧客が「自分ごと」として課題を捉え、自然と購買意欲が高まるストーリーが完成します。",
+    link: "/guides/pasona-guide.html",
   },
   {
     id: 6,

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BANT 完全ガイド | 営業スクリプトAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a26;
+    --bg-card-hover: #22222f;
+    --border: #2a2a3a;
+    --text-primary: #e8e8f0;
+    --text-secondary: #9090a8;
+    --text-muted: #606078;
+    --accent-blue: #4e7cff;
+    --accent-blue-dim: rgba(78, 124, 255, 0.12);
+    --accent-green: #34d399;
+    --accent-green-dim: rgba(52, 211, 153, 0.12);
+    --accent-amber: #f59e0b;
+    --accent-amber-dim: rgba(245, 158, 11, 0.12);
+    --accent-rose: #f43f5e;
+    --accent-rose-dim: rgba(244, 63, 94, 0.12);
+    --accent-purple: #a78bfa;
+    --accent-purple-dim: rgba(167, 139, 250, 0.12);
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.9;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hero {
+    position: relative; padding: 80px 24px 60px; text-align: center; overflow: hidden;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(52, 211, 153, 0.08) 0%, transparent 70%), var(--bg-primary);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+    background: var(--accent-green-dim); border: 1px solid rgba(52,211,153,0.2); border-radius: 99px;
+    font-size: 12px; font-weight: 600; color: var(--accent-green); letter-spacing: 0.04em; margin-bottom: 20px;
+  }
+  .hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%; }
+  .hero h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent-green), #60e0c0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero-sub { font-size: 15px; color: var(--text-secondary); max-width: 520px; margin: 0 auto; }
+  .hero-meta { display: flex; justify-content: center; gap: 20px; margin-top: 24px; font-size: 12px; color: var(--text-muted); }
+  .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 48px 0; }
+  section + section { border-top: 1px solid var(--border); }
+  h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.01em; }
+  h3 { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+  p { color: var(--text-secondary); font-size: 15px; margin-bottom: 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+  .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 16px; text-align: center; }
+  .stat-number { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 700; color: var(--accent-green); line-height: 1; margin-bottom: 6px; }
+  .stat-label { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* BANT 4 Cards */
+  .bant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
+  .bant-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; transition: border-color 0.2s;
+  }
+  .bant-card:hover { border-color: rgba(255,255,255,0.08); }
+  .bant-letter {
+    font-family: 'Inter', sans-serif; font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px;
+  }
+  .bant-en { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .bant-card h3 { margin-bottom: 10px; }
+  .bant-card p { font-size: 14px; margin-bottom: 0; }
+  .bant-card[data-el="B"] .bant-letter { color: var(--accent-green); }
+  .bant-card[data-el="A"] .bant-letter { color: var(--accent-blue); }
+  .bant-card[data-el="N"] .bant-letter { color: var(--accent-amber); }
+  .bant-card[data-el="T"] .bant-letter { color: var(--accent-rose); }
+
+  .bant-questions {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; margin-top: 14px;
+  }
+  .bant-questions h4 {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 12px;
+  }
+  .bant-card[data-el="B"] + .bant-questions h4 { color: var(--accent-green); }
+  .q-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .q-list li {
+    font-size: 13.5px; color: var(--text-secondary); padding-left: 18px; position: relative; line-height: 1.7;
+  }
+  .q-list li::before { content: '▸'; position: absolute; left: 0; color: var(--text-muted); }
+
+  /* Score Matrix */
+  .matrix-wrap { overflow-x: auto; margin-top: 20px; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead { background: var(--bg-card); }
+  th { padding: 14px 16px; text-align: left; font-weight: 700; font-size: 12px; letter-spacing: 0.04em; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 14px 16px; color: var(--text-secondary); border-bottom: 1px solid rgba(42,42,58,0.5); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.015); }
+  td:first-child { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+
+  .score-badge {
+    display: inline-flex; align-items: center; justify-content: center; padding: 3px 10px;
+    border-radius: 6px; font-size: 12px; font-weight: 700;
+  }
+  .score-high { background: var(--accent-green-dim); color: var(--accent-green); }
+  .score-mid { background: var(--accent-amber-dim); color: var(--accent-amber); }
+  .score-low { background: var(--accent-rose-dim); color: var(--accent-rose); }
+
+  /* Dialogue */
+  .dialogue { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .dialogue-line { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: start; }
+  .dialogue-speaker { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 0; text-align: center; border-radius: 6px; line-height: 1; }
+  .dialogue-speaker.sales { background: var(--accent-green-dim); color: var(--accent-green); }
+  .dialogue-speaker.client { background: var(--accent-blue-dim); color: var(--accent-blue); }
+  .dialogue-bubble { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 13.5px; color: var(--text-secondary); }
+  .dialogue-phase { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; padding: 16px 0 6px; grid-column: 1 / -1; }
+  .dialogue-phase::before { content: '— '; color: var(--accent-green); }
+
+  /* Tips */
+  .tips-box { background: var(--accent-green-dim); border: 1px solid rgba(52,211,153,0.2); border-radius: var(--radius); padding: 24px; margin-top: 20px; }
+  .tips-box h3 { color: var(--accent-green); font-size: 14px; letter-spacing: 0.03em; margin-bottom: 14px; }
+  .tips-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .tips-list li { font-size: 14px; color: var(--text-secondary); padding-left: 20px; position: relative; line-height: 1.7; }
+  .tips-list li::before { content: '→'; position: absolute; left: 0; color: var(--accent-green); font-weight: 700; }
+
+  .cta-section { text-align: center; padding: 56px 0 72px; }
+  .cta-section p { margin-bottom: 24px; }
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px;
+    background: linear-gradient(135deg, var(--accent-green), #2ec4a0); color: #fff;
+    font-size: 15px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer;
+    text-decoration: none; transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 24px rgba(52, 211, 153, 0.25);
+  }
+  .cta-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 32px rgba(52, 211, 153, 0.35); }
+
+  .footer { border-top: 1px solid var(--border); padding: 24px; text-align: center; font-size: 12px; color: var(--text-muted); }
+
+  @media (max-width: 600px) {
+    .stats-grid, .bant-grid { grid-template-columns: 1fr; }
+    .hero { padding: 60px 20px 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <div class="hero-badge">フレームワーク解説</div>
+    <h1><span>BANT</span> 完全ガイド</h1>
+    <p class="hero-sub">Budget・Authority・Need・Timelineの4軸で商談の確度を見極め、限られたリソースを最大効率で配分するフレームワークを解説します。</p>
+    <div class="hero-meta">
+      <span>📖 読了目安 5分</span>
+      <span>🏷 営業フレームワーク</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <section>
+    <h2>BANTとは？</h2>
+    <p>BANTは1960年代にIBMが開発した、商談の優先度を判断するためのフレームワークです。見込み顧客がBudget（予算）・Authority（決裁権）・Need（必要性）・Timeline（導入時期）の4要素を満たしているかを確認し、確度の高い案件にリソースを集中させます。</p>
+    <p>60年以上の歴史を持ちながら今も世界中で使われ続けている理由は、そのシンプルさと汎用性にあります。BtoBのあらゆる商材・規模に適用でき、営業チーム内での共通言語として機能します。</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">60+</div>
+        <div class="stat-label">年以上の歴史</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">2.5x</div>
+        <div class="stat-label">案件絞り込みの効率化</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">4</div>
+        <div class="stat-label">判定軸</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>BANTの4要素</h2>
+    <p>各要素を初回〜2回目の商談で把握し、すべてが揃った案件を「ホット案件」として最優先で進めます。</p>
+
+    <div class="bant-grid">
+      <div class="bant-card" data-el="B">
+        <div class="bant-letter">B</div>
+        <div class="bant-en">Budget</div>
+        <h3>予算</h3>
+        <p>導入にあてられる予算が確保されているか、または予算取りの見込みがあるかを確認します。予算規模だけでなく「いつの予算で取れるか」も重要なポイントです。</p>
+      </div>
+      <div class="bant-card" data-el="A">
+        <div class="bant-letter">A</div>
+        <div class="bant-en">Authority</div>
+        <h3>決裁権</h3>
+        <p>商談相手が最終的な意思決定者か、あるいは決裁者へのアクセス手段があるかを見極めます。担当者だけで盛り上がっても決裁者が動かなければ案件は停滞します。</p>
+      </div>
+      <div class="bant-card" data-el="N">
+        <div class="bant-letter">N</div>
+        <div class="bant-en">Need</div>
+        <h3>必要性</h3>
+        <p>顧客が解決すべき明確な課題を持っており、自社の商材がその解決に直結するかを確認します。「あったらいいな」レベルか「なければ困る」レベルかで優先度が変わります。</p>
+      </div>
+      <div class="bant-card" data-el="T">
+        <div class="bant-letter">T</div>
+        <div class="bant-en">Timeline</div>
+        <h3>導入時期</h3>
+        <p>具体的な導入時期やプロジェクトのスケジュール感があるかを確認します。「いつか導入したい」は優先度が低く、「来月中に決めたい」ならすぐ動くべきです。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>BANTスコアリング表</h2>
+    <p>各要素を3段階で評価し、案件の確度を客観的に判定しましょう。チーム内で基準を統一することで属人化を防げます。</p>
+
+    <div class="matrix-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>要素</th>
+            <th><span class="score-badge score-high">高</span></th>
+            <th><span class="score-badge score-mid">中</span></th>
+            <th><span class="score-badge score-low">低</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Budget</td>
+            <td>予算確保済み</td>
+            <td>予算取り可能・時期未定</td>
+            <td>予算なし・未検討</td>
+          </tr>
+          <tr>
+            <td>Authority</td>
+            <td>決裁者本人と接触中</td>
+            <td>決裁者への紹介予定あり</td>
+            <td>決裁ルート不明</td>
+          </tr>
+          <tr>
+            <td>Need</td>
+            <td>課題が明確で緊急性あり</td>
+            <td>課題認識はあるが優先度低</td>
+            <td>課題認識なし</td>
+          </tr>
+          <tr>
+            <td>Timeline</td>
+            <td>3ヶ月以内に導入予定</td>
+            <td>半年〜1年以内を検討</td>
+            <td>時期未定・情報収集段階</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>実践例：ITソリューション営業での会話</h2>
+    <p>クラウド型業務効率化ツールを提案する場面を想定し、BANTの4要素をヒアリングする流れを見てみましょう。</p>
+
+    <div class="dialogue">
+      <div class="dialogue-phase">Need ─ 必要性の確認</div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker sales">営業</div>
+        <div class="dialogue-bubble">現在、業務管理で特にお困りの点はどのあたりでしょうか？</div>
+      </div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker client">顧客</div>
+        <div class="dialogue-bubble">部署間の情報共有が遅れがちで、二重対応や抜け漏れが月に数件は発生しています。</div>
+      </div>
+
+      <div class="dialogue-phase">Timeline ─ 導入時期の確認</div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker sales">営業</div>
+        <div class="dialogue-bubble">その課題の解消について、社内で具体的な時期感は出ていますか？</div>
+      </div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker client">顧客</div>
+        <div class="dialogue-bubble">来期の業務改善計画に入れたいので、できれば2ヶ月以内にツールを選定したいですね。</div>
+      </div>
+
+      <div class="dialogue-phase">Authority ─ 決裁権の確認</div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker sales">営業</div>
+        <div class="dialogue-bubble">導入の最終的なご判断は、どなたがされるご予定ですか？</div>
+      </div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker client">顧客</div>
+        <div class="dialogue-bubble">最終決裁は事業部長ですが、私が提案書をまとめて上申する形になります。</div>
+      </div>
+
+      <div class="dialogue-phase">Budget ─ 予算の確認</div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker sales">営業</div>
+        <div class="dialogue-bubble">ご参考までに、今回のプロジェクトでお考えの予算感はどのくらいでしょうか？</div>
+      </div>
+      <div class="dialogue-line">
+        <div class="dialogue-speaker client">顧客</div>
+        <div class="dialogue-bubble">年間で200〜300万円の範囲で考えています。効果が見込めればもう少し上も検討できます。</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>BANT活用の5つのコツ</h2>
+    <div class="tips-box">
+      <h3>💡 実践ポイント</h3>
+      <ul class="tips-list">
+        <li><strong>NeedかTimelineから聞く：</strong>いきなり予算や決裁者を聞くと警戒されます。まず課題やスケジュール感から入り、自然な流れで残りの要素を確認しましょう。</li>
+        <li><strong>全部揃わなくても諦めない：</strong>4要素のうち3つが「高」なら十分ホット案件です。欠けている要素を補うアクション（例：決裁者への同行提案）をセットで考えましょう。</li>
+        <li><strong>CRMに必ず記録する：</strong>BANT情報は記憶に頼らず必ずツールに記録。チーム全員が同じ基準で案件を評価できる仕組みが属人化を防ぎます。</li>
+        <li><strong>定期的に再評価する：</strong>BANTの状態は時間とともに変化します。特にTimeline・Budgetは月1回は再確認し、スコアを更新しましょう。</li>
+        <li><strong>他のフレームワークと併用する：</strong>BANTは「案件の絞り込み」に強い反面、「課題の深掘り」は苦手。SPIN話法やMEDDICと組み合わせると相乗効果が生まれます。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2>BANT情報を活かしたスクリプトを作ろう</h2>
+    <p>営業スクリプトAIなら、ターゲットの業種や役職に最適化されたBANTヒアリングの質問を自動で組み込んだスクリプトを生成できます。</p>
+    <a href="https://script-ai-opal.vercel.app/#form" class="cta-btn">
+      <span>無料でスクリプトを生成する</span>
+      <span>→</span>
+    </a>
+  </section>
+
+</main>
+<footer class="footer">© 2025 営業スクリプトAI by エムアンドワイ</footer>
+</body>
+</html>

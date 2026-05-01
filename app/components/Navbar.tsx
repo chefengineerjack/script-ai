@@ -1,13 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AuthModal from "@/app/components/AuthModal";
 
 type UserInfo = { email: string; plan: string } | null;
 
+const guides = [
+  { label: "SPIN話法", href: "/guides/spin-selling-guide.html" },
+  { label: "BANT", href: "/guides/bant-guide.html" },
+  { label: "チャレンジャーセールス", href: "/guides/challenger-sales-guide.html" },
+  { label: "MEDDIC", href: "/guides/meddic-guide.html" },
+  { label: "PASONAの法則", href: "/guides/pasona-guide.html" },
+];
+
 export default function Navbar() {
   const [user, setUser] = useState<UserInfo>(null);
   const [authModal, setAuthModal] = useState<{ tab: "login" | "register" } | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const guideRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (guideRef.current && !guideRef.current.contains(e.target as Node)) {
+        setGuideOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -41,6 +61,44 @@ export default function Navbar() {
             >
               スクリプト生成
             </a>
+
+            {/* 営業フレームワーク解説 ドロップダウン */}
+            <div
+              ref={guideRef}
+              className="relative hidden sm:block"
+              onMouseEnter={() => setGuideOpen(true)}
+              onMouseLeave={() => setGuideOpen(false)}
+            >
+              <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition-colors px-2 py-1">
+                営業フレームワーク解説
+                <svg
+                  className={`w-3 h-3 transition-transform duration-150 ${guideOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {guideOpen && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50">
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-lg py-1 w-52">
+                    {guides.map((g) => (
+                      <a
+                        key={g.href}
+                        href={g.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                      >
+                        {g.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <a
               href="#pricing"
               className="hidden sm:block rounded-lg bg-indigo-50 px-3.5 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"

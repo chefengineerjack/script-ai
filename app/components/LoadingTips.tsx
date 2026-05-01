@@ -69,21 +69,35 @@ export default function LoadingTips({ isLoading }: Props) {
           {/* 本文 */}
           <p className="text-sm text-gray-600 leading-relaxed">{tip.body}</p>
 
-          {/* 次のTipsボタン（ローディング中のみ表示） */}
-          {isLoading && (
-            <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={handleNext}
+          {/* フッター行：詳しく読む ＋ 次のTipsボタン */}
+          <div className="flex items-center justify-between pt-1">
+            {tip.link ? (
+              <a
+                href={tip.link}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors"
               >
-                次のTips →
-              </button>
-              <span className="text-[10px] text-amber-400">
-                {AUTO_ROTATE_MS / 1000}秒ごとに自動更新
-              </span>
-            </div>
-          )}
+                詳しく読む →
+              </a>
+            ) : (
+              <span />
+            )}
+            {isLoading && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="text-xs font-medium text-amber-600 hover:text-amber-800 transition-colors"
+                >
+                  次のTips →
+                </button>
+                <span className="text-[10px] text-amber-400">
+                  {AUTO_ROTATE_MS / 1000}秒ごとに自動更新
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
