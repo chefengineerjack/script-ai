@@ -62,6 +62,16 @@ export default function Navbar() {
               スクリプト生成
             </a>
 
+            {/* 生成履歴（ログイン時のみ） */}
+            {user && (
+              <a
+                href="/history"
+                className="hidden sm:block text-sm text-gray-500 hover:text-indigo-600 transition-colors px-2 py-1"
+              >
+                生成履歴
+              </a>
+            )}
+
             {/* 営業フレームワーク解説 ドロップダウン */}
             <div
               ref={guideRef}

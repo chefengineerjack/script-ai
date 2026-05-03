@@ -7,6 +7,7 @@ import {
   checkAndConsumeFreeUser,
   checkAndConsumeStandardUser,
 } from "@/app/lib/rateLimit";
+import { saveHistory } from "@/app/lib/history";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -510,6 +511,13 @@ export async function POST(request: Request) {
       companyAnalysisLocked: isFreePlan && !!body.targetCompany,
       flowChartLocked: isFreePlan,
     };
+
+    // 履歴保存（ログインユーザーのみ、デモモード除く）
+    if (userEmail && !isDemoMode) {
+      saveHistory(userEmail, effectivePlan, body, result).catch((err) =>
+        console.error("Failed to save history:", err)
+      );
+    }
 
     return Response.json(result);
   } catch (err) {

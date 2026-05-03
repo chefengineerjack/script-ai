@@ -53,7 +53,15 @@ const SCRIPT_TYPES = [
   { value: "both", label: "両方" },
 ];
 
-function IndustrySelect({ name, label }: { name: string; label: string }) {
+function IndustrySelect({
+  name,
+  label,
+  defaultValue,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="block text-sm font-medium text-gray-700">
@@ -62,6 +70,7 @@ function IndustrySelect({ name, label }: { name: string; label: string }) {
       <select
         name={name}
         required
+        defaultValue={defaultValue ?? ""}
         className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
       >
         <option value="">選択してください</option>
@@ -99,8 +108,11 @@ export default function ScriptForm() {
   // Tips 表示制御：初回生成後から表示し、生成のたびに key を変えてリセット
   const [tipsVisible, setTipsVisible] = useState(false);
   const [generationKey, setGenerationKey] = useState(0);
+  // 履歴からの再生成：sessionStorage から初期値を読み込む
+  const [prefill, setPrefill] = useState<GenerateRequest | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
-  // ゲストトークン初期化 + 残り回数取得
+  // ゲストトークン初期化 + 残り回数取得 + 履歴からの pre-fill
   useEffect(() => {
     let token = localStorage.getItem("scriptai_guest_token");
     if (!token) {
@@ -119,6 +131,18 @@ export default function ScriptForm() {
         })
       )
       .catch(() => {});
+
+    // sessionStorage から履歴の再生成データを取得
+    try {
+      const stored = sessionStorage.getItem("scriptai_prefill");
+      if (stored) {
+        sessionStorage.removeItem("scriptai_prefill");
+        setPrefill(JSON.parse(stored));
+        setFormKey((k) => k + 1); // フォームを再マウントして defaultValue を反映
+      }
+    } catch {
+      // 無視
+    }
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -301,6 +325,7 @@ export default function ScriptForm() {
   return (
     <div className="space-y-8">
       <form
+        key={formKey}
         onSubmit={handleSubmit}
         className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl shadow-indigo-100 border border-gray-100 p-8 space-y-7"
       >
@@ -329,8 +354,8 @@ export default function ScriptForm() {
         </a>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <IndustrySelect name="ownIndustry" label="自分の業種" />
-          <IndustrySelect name="targetIndustry" label="ターゲットの業種" />
+          <IndustrySelect name="ownIndustry" label="自分の業種" defaultValue={prefill?.ownIndustry} />
+          <IndustrySelect name="targetIndustry" label="ターゲットの業種" defaultValue={prefill?.targetIndustry} />
 
           {/* ターゲット企業名 */}
           <div className="space-y-1.5">
@@ -340,6 +365,7 @@ export default function ScriptForm() {
             <input
               type="text"
               name="targetCompany"
+              defaultValue={prefill?.targetCompany ?? ""}
               placeholder="例：株式会社〇〇"
               className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
             />
@@ -354,6 +380,7 @@ export default function ScriptForm() {
               type="text"
               name="targetDepartment"
               list="department-options"
+              defaultValue={prefill?.targetDepartment ?? ""}
               placeholder="例：営業部、情報システム部"
               className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
             />
@@ -373,6 +400,7 @@ export default function ScriptForm() {
               type="text"
               name="product"
               required
+              defaultValue={prefill?.product ?? ""}
               placeholder="例：クラウド型CRMシステム"
               className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
             />
@@ -396,6 +424,7 @@ export default function ScriptForm() {
             <select
               name="position"
               required
+              defaultValue={prefill?.position ?? ""}
               className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
             >
               <option value="">選択してください</option>
@@ -419,7 +448,7 @@ export default function ScriptForm() {
                 key={value}
                 className="relative flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 font-medium transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50/50"
               >
-                <input type="radio" name="purpose" value={value} required className="sr-only" />
+                <input type="radio" name="purpose" value={value} required defaultChecked={prefill?.purpose === value} className="sr-only" />
                 {label}
               </label>
             ))}
@@ -437,7 +466,7 @@ export default function ScriptForm() {
                 key={value}
                 className="relative flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 font-medium transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50/50"
               >
-                <input type="radio" name="scriptType" value={value} required className="sr-only" />
+                <input type="radio" name="scriptType" value={value} required defaultChecked={prefill?.scriptType === value} className="sr-only" />
                 {label}
               </label>
             ))}
