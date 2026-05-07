@@ -83,7 +83,7 @@ const PLANS: Plan[] = [
 function CheckIcon() {
   return (
     <svg
-      className="h-4 w-4 shrink-0 text-indigo-500"
+      className="h-4 w-4 shrink-0 text-[#0F1B2D]"
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -94,10 +94,10 @@ function CheckIcon() {
   );
 }
 
-function CrossIcon() {
+function CrossIcon({ highlight }: { highlight?: boolean }) {
   return (
     <svg
-      className="h-4 w-4 shrink-0 text-gray-300"
+      className={`h-4 w-4 shrink-0 ${highlight ? "text-[#C8FF3E]/40" : "text-[#E5E1D7]"}`}
       fill="none"
       viewBox="0 0 24 24"
       stroke="currentColor"
@@ -110,20 +110,19 @@ function CrossIcon() {
 
 function PlanCard({ plan }: { plan: Plan }) {
   const isHighlight = plan.highlight;
+  const isDim = plan.comingSoon;
 
   return (
     <div
-      className={`relative flex flex-col rounded-2xl bg-white overflow-hidden transition-all ${
+      className={`relative flex flex-col rounded-[20px] overflow-hidden transition-all ${
         isHighlight
-          ? "border-2 border-indigo-500 shadow-2xl shadow-indigo-100 px-7 pt-12 pb-8 md:-my-5"
-          : "border border-gray-200 shadow-sm px-6 pt-8 pb-7"
-      }`}
+          ? "bg-[#C8FF3E] text-[#0F1B2D] px-7 pt-12 pb-8 md:-my-5"
+          : "bg-[#F6F4EE]/10 text-[#F6F4EE] border border-white/15 px-6 pt-8 pb-7"
+      } ${isDim ? "opacity-55" : ""}`}
     >
       {/* Coming Soon リボン */}
       {plan.comingSoon && (
-        <div
-          className="absolute top-5 right-[-26px] w-32 rotate-45 bg-gray-600 py-1 text-center text-[10px] font-bold tracking-wider text-white shadow"
-        >
+        <div className="absolute top-5 right-[-26px] w-32 rotate-45 bg-[#4A5A6E] py-1 text-center text-[10px] font-bold tracking-wider text-[#F6F4EE] shadow">
           Coming Soon
         </div>
       )}
@@ -131,46 +130,45 @@ function PlanCard({ plan }: { plan: Plan }) {
       {/* おすすめバッジ */}
       {plan.badge && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2">
-          <span className="rounded-full bg-indigo-600 px-4 py-1 text-xs font-bold text-white shadow-md">
-            ✨ {plan.badge}
+          <span className="rounded-full bg-[#0F1B2D] px-4 py-1 text-xs font-bold text-[#C8FF3E] shadow-md">
+            ★ {plan.badge}
           </span>
         </div>
       )}
 
-      {/* プラン名・価格 */}
-      <div className="mb-6 space-y-1">
-        <h3
-          className={`font-bold ${
-            isHighlight ? "text-xl text-indigo-700" : "text-lg text-gray-800"
-          }`}
-        >
-          {plan.name}
+      {/* プラン名 */}
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className={`text-[12px] font-bold tracking-[1px] ${isHighlight ? "text-[#0F1B2D]" : "text-[#F6F4EE]"}`}>
+          {plan.name.toUpperCase()}
         </h3>
-        <div className="flex items-end gap-1">
-          <span
-            className={`font-extrabold tracking-tight ${
-              isHighlight ? "text-4xl text-gray-900" : "text-3xl text-gray-800"
-            }`}
-          >
-            {plan.price}
-          </span>
-          {plan.period && (
-            <span className="mb-1 text-sm text-gray-400">{plan.period}</span>
-          )}
-        </div>
-        <p className="text-xs text-gray-500">{plan.tagline}</p>
       </div>
+
+      {/* 価格 */}
+      <div className="mb-1">
+        <span className={`font-[var(--font-display)] text-[52px] font-black tracking-[-2px] leading-[1] ${isHighlight ? "text-[#0F1B2D]" : "text-[#F6F4EE]"}`}>
+          {plan.price}
+        </span>
+        {plan.period && (
+          <span className={`text-[13px] ml-1 ${isHighlight ? "opacity-70" : "opacity-60"}`}>{plan.period}/月</span>
+        )}
+      </div>
+      <p className={`text-[13px] mb-6 ${isHighlight ? "opacity-70" : "opacity-60"}`}>{plan.tagline}</p>
+
+      {/* 区切り */}
+      <div className={`h-px mb-6 ${isHighlight ? "bg-[#0F1B2D]/15" : "bg-white/15"}`} />
 
       {/* 機能リスト */}
       <ul className="mb-7 flex-1 space-y-3">
         {plan.features.map((f) => (
           <li
             key={f.label}
-            className={`flex items-center gap-2.5 text-sm ${
-              f.included ? "text-gray-700" : "text-gray-300"
+            className={`flex items-center gap-2.5 text-[14px] ${
+              f.included
+                ? isHighlight ? "text-[#0F1B2D]" : "text-[#F6F4EE]"
+                : isHighlight ? "text-[#0F1B2D]/40" : "text-[#F6F4EE]/30"
             }`}
           >
-            {f.included ? <CheckIcon /> : <CrossIcon />}
+            {f.included ? <CheckIcon /> : <CrossIcon highlight={isHighlight} />}
             {f.label}
           </li>
         ))}
@@ -180,26 +178,34 @@ function PlanCard({ plan }: { plan: Plan }) {
       {plan.useCheckout ? (
         <CheckoutButton
           label={plan.ctaLabel}
-          className="block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+          className={`block w-full rounded-full py-3.5 text-center text-sm font-bold transition-opacity disabled:opacity-70 disabled:cursor-not-allowed ${
+            isHighlight
+              ? "bg-[#0F1B2D] text-[#C8FF3E] hover:opacity-90"
+              : "bg-transparent text-[#F6F4EE] border border-white/40 hover:bg-white/10"
+          }`}
         />
       ) : plan.ctaHref ? (
         <a
           href={plan.ctaHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-500 transition-colors"
+          className={`block w-full rounded-full py-3.5 text-center text-sm font-bold transition-colors ${
+            isHighlight
+              ? "bg-[#0F1B2D] text-[#C8FF3E] hover:opacity-90"
+              : "bg-transparent text-[#F6F4EE] border border-white/40 hover:bg-white/10"
+          }`}
         >
           {plan.ctaLabel}
         </a>
       ) : plan.comingSoon ? (
         <button
           disabled
-          className="w-full cursor-not-allowed rounded-xl bg-gray-100 py-3 text-sm font-semibold text-gray-400"
+          className="w-full cursor-not-allowed rounded-full bg-white/10 py-3.5 text-sm font-bold text-[#F6F4EE]/50"
         >
           {plan.ctaLabel}
         </button>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 py-3 text-center text-sm font-medium text-gray-400">
+        <div className={`rounded-full py-3.5 text-center text-sm font-medium ${isHighlight ? "bg-[#0F1B2D]/10 text-[#0F1B2D]/50" : "border border-white/20 text-[#F6F4EE]/40"}`}>
           {plan.ctaLabel}
         </div>
       )}
@@ -209,21 +215,21 @@ function PlanCard({ plan }: { plan: Plan }) {
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="scroll-mt-14 py-20 px-6">
-      <div className="mx-auto max-w-5xl">
+    <section id="pricing" className="scroll-mt-14 bg-[#F6F4EE] px-6 pb-0 pt-0">
+      <div className="bg-[#0F1B2D] mx-auto max-w-6xl rounded-[32px] px-8 py-16 md:px-14 md:py-20">
         {/* ヘッダー */}
-        <div className="mb-14 text-center space-y-3">
-          <span className="inline-block rounded-full bg-indigo-100 px-4 py-1.5 text-sm font-medium text-indigo-700">
-            料金プラン
-          </span>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            シンプルな料金体系
+        <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <h2 className="text-[#F6F4EE] font-black text-[28px] md:text-[48px] tracking-[-1.5px] leading-[1]">
+            まず<span className="text-[#C8FF3E]">無料</span>で。<br />
+            気に入ったら月額¥980。
           </h2>
-          <p className="text-gray-500">いつでもキャンセル可能。まずは無料でお試しください。</p>
+          <p className="text-[13px] text-[#F6F4EE]/50 max-w-[200px]">
+            いつでもキャンセル可能。<br />クレジットカードは課金時のみ。
+          </p>
         </div>
 
         {/* カードグリッド */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:items-center">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:items-center">
           {PLANS.map((plan) => (
             <PlanCard key={plan.id} plan={plan} />
           ))}

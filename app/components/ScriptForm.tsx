@@ -64,14 +64,14 @@ function IndustrySelect({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
-        {label} <span className="text-indigo-500">*</span>
+      <label className="block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E]">
+        {label} <span className="text-[#C8FF3E] bg-[#0F1B2D] rounded px-1">必須</span>
       </label>
       <select
         name={name}
         required
         defaultValue={defaultValue ?? ""}
-        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
+        className="w-full rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3.5 py-2.5 text-sm text-[#0F1B2D] focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10 transition"
       >
         <option value="">選択してください</option>
         {INDUSTRIES.map((item) => (
@@ -193,7 +193,7 @@ export default function ScriptForm() {
       } else {
         setResult(data);
         if (guestToken) {
-          localStorage.setItem("scriptai_guest_used", "true");
+          localStorage.setItem("scriptai_used", "true");
         }
         setLimitInfo((prev) =>
           prev && prev.remaining !== null
@@ -238,8 +238,8 @@ export default function ScriptForm() {
       if (remaining === null || limit === null) return null;
       return (
         <p
-          className={`text-center text-sm ${
-            remaining === 0 ? "font-semibold text-red-500" : "text-indigo-600 font-medium"
+          className={`text-center text-sm font-medium ${
+            remaining === 0 ? "text-[#D9534F]" : "text-[#4A5A6E]"
           }`}
         >
           {remaining === 0 ? "今月の上限に達しました" : `✨ 今月の残り: ${remaining}/${limit}回`}
@@ -254,7 +254,7 @@ export default function ScriptForm() {
     return (
       <p
         className={`text-center text-sm ${
-          remaining === 0 ? "font-semibold text-red-500" : "text-gray-400"
+          remaining === 0 ? "font-semibold text-[#D9534F]" : "text-[#4A5A6E]"
         }`}
       >
         {label}
@@ -269,17 +269,17 @@ export default function ScriptForm() {
 
     if (plan === "guest") {
       return (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 space-y-3 text-center">
-          <p className="text-sm font-semibold text-blue-900">
+        <div className="rounded-[14px] border-2 border-[#0F1B2D] bg-[#F6F4EE] px-5 py-4 space-y-3 text-center">
+          <p className="text-sm font-bold text-[#0F1B2D]">
             続けて使うには無料アカウント登録が必要です
           </p>
-          <p className="text-xs text-blue-700">
+          <p className="text-xs text-[#4A5A6E]">
             登録無料・メールアドレスのみ。登録後は1日2回まで使えます。
           </p>
           <button
             type="button"
             onClick={() => setAuthModal({ tab: "register" })}
-            className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+            className="rounded-[12px] bg-[#0F1B2D] px-5 py-2 text-sm font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity"
           >
             無料登録して続ける
           </button>
@@ -289,17 +289,17 @@ export default function ScriptForm() {
 
     if (plan === "free") {
       return (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 space-y-3 text-center">
-          <p className="text-sm font-medium text-amber-800">
+        <div className="rounded-[14px] border-2 border-[#0F1B2D] bg-[#F6F4EE] px-5 py-4 space-y-3 text-center">
+          <p className="text-sm font-medium text-[#0F1B2D]">
             本日の無料枠を使い切りました。
           </p>
-          <p className="text-xs text-gray-500 mb-1">
+          <p className="text-xs text-[#4A5A6E] mb-1">
             スタンダードプラン（月額980円）なら月30回、企業分析・フローチャートも使えます。
           </p>
           <button
             type="button"
             onClick={handleUpgradeCheckout}
-            className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+            className="rounded-[12px] bg-[#0F1B2D] px-5 py-2 text-sm font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity"
           >
             スタンダードプランにアップグレード
           </button>
@@ -309,11 +309,11 @@ export default function ScriptForm() {
 
     // standard plan limit
     return (
-      <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-center">
-        <p className="text-sm font-medium text-gray-700">
+      <div className="rounded-[14px] border border-[#E5E1D7] bg-white px-5 py-4 text-center">
+        <p className="text-sm font-medium text-[#0F1B2D]">
           今月の生成回数（30回）を使い切りました。
         </p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-[#4A5A6E] mt-1">
           来月1日（UTC）にリセットされます。
         </p>
       </div>
@@ -327,11 +327,11 @@ export default function ScriptForm() {
       <form
         key={formKey}
         onSubmit={handleSubmit}
-        className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl shadow-indigo-100 border border-gray-100 p-8 space-y-7"
+        className="w-full max-w-2xl mx-auto bg-white rounded-[20px] border-2 border-[#0F1B2D] p-8 md:p-10 space-y-7 shadow-[0_8px_32px_rgba(15,27,45,0.08)]"
       >
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-gray-900">情報を入力する</h2>
-          <p className="text-sm text-gray-500">必要事項を入力してスクリプトを生成します</p>
+          <h2 className="text-xl font-black text-[#0F1B2D]">情報を入力する</h2>
+          <p className="text-sm text-[#4A5A6E]">必要事項を入力してスクリプトを生成します</p>
         </div>
 
         {/* 上部：無制限版登録バナー */}
@@ -339,14 +339,14 @@ export default function ScriptForm() {
           href="https://forms.gle/xPoQcpJBbGiiFGY39"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-white shadow-sm hover:from-indigo-500 hover:to-violet-500 transition-all group"
+          className="flex items-center justify-between rounded-[14px] bg-[#0F1B2D] px-4 py-3 text-[#F6F4EE] hover:opacity-90 transition-opacity group"
         >
           <div className="space-y-0.5">
-            <p className="text-[11px] font-medium text-indigo-200">現在 無料トライアル中（1日2回）</p>
-            <p className="text-sm font-semibold">無制限版登録フォーム</p>
+            <p className="text-[11px] font-medium text-[#C8FF3E]/70">現在 無料トライアル中（1日2回）</p>
+            <p className="text-sm font-bold text-[#C8FF3E]">無制限版登録フォーム</p>
           </div>
           <svg
-            className="h-5 w-5 shrink-0 opacity-80 group-hover:translate-x-0.5 transition-transform"
+            className="h-5 w-5 shrink-0 text-[#C8FF3E]/70 group-hover:translate-x-0.5 transition-transform"
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -359,7 +359,7 @@ export default function ScriptForm() {
 
           {/* ターゲット企業名 */}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E]">
               ターゲット企業名
             </label>
             <input
@@ -367,13 +367,13 @@ export default function ScriptForm() {
               name="targetCompany"
               defaultValue={prefill?.targetCompany ?? ""}
               placeholder="例：株式会社〇〇"
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
+              className="w-full rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3.5 py-2.5 text-sm text-[#0F1B2D] placeholder:text-[#4A5A6E]/40 focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10 transition"
             />
           </div>
 
           {/* ターゲットの部門 */}
           <div className="space-y-1.5 sm:col-start-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E]">
               ターゲットの部門
             </label>
             <input
@@ -382,7 +382,7 @@ export default function ScriptForm() {
               list="department-options"
               defaultValue={prefill?.targetDepartment ?? ""}
               placeholder="例：営業部、情報システム部"
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
+              className="w-full rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3.5 py-2.5 text-sm text-[#0F1B2D] placeholder:text-[#4A5A6E]/40 focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10 transition"
             />
             <datalist id="department-options">
               {DEPARTMENTS.map((d) => (
@@ -393,8 +393,8 @@ export default function ScriptForm() {
 
           {/* 商材・サービス名 */}
           <div className="space-y-2 sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              商材・サービス名 <span className="text-indigo-500">*</span>
+            <label className="block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E]">
+              商材・サービス名 <span className="text-[#C8FF3E] bg-[#0F1B2D] rounded px-1">必須</span>
             </label>
             <input
               type="text"
@@ -402,15 +402,15 @@ export default function ScriptForm() {
               required
               defaultValue={prefill?.product ?? ""}
               placeholder="例：クラウド型CRMシステム"
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
+              className="w-full rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3.5 py-2.5 text-sm text-[#0F1B2D] placeholder:text-[#4A5A6E]/40 focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10 transition"
             />
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 transition hover:border-indigo-300 hover:bg-indigo-50/40 has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-50">
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3.5 py-2.5 transition hover:border-[#0F1B2D] has-[:checked]:border-[#0F1B2D] has-[:checked]:bg-[#0F1B2D]/5">
               <input
                 type="checkbox"
                 name="webSearch"
-                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-indigo-600"
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#0F1B2D]"
               />
-              <span className="text-sm text-gray-600 leading-snug">
+              <span className="text-sm text-[#4A5A6E] leading-snug">
                 Webで商材・サービスについて情報を検索して最適なスクリプトを生成する
               </span>
             </label>
@@ -418,14 +418,14 @@ export default function ScriptForm() {
 
           {/* ターゲットの役職 */}
           <div className="space-y-1.5 sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              ターゲットの役職 <span className="text-indigo-500">*</span>
+            <label className="block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E]">
+              ターゲットの役職 <span className="text-[#C8FF3E] bg-[#0F1B2D] rounded px-1">必須</span>
             </label>
             <select
               name="position"
               required
               defaultValue={prefill?.position ?? ""}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200 transition"
+              className="w-full rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3.5 py-2.5 text-sm text-[#0F1B2D] focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10 transition"
             >
               <option value="">選択してください</option>
               {POSITIONS.map((item) => (
@@ -439,14 +439,14 @@ export default function ScriptForm() {
 
         {/* 営業の目的 */}
         <div className="space-y-2.5">
-          <label className="block text-sm font-medium text-gray-700">
-            営業の目的 <span className="text-indigo-500">*</span>
+          <label className="block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E]">
+            営業の目的 <span className="text-[#C8FF3E] bg-[#0F1B2D] rounded px-1">必須</span>
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {PURPOSES.map(({ value, label }) => (
               <label
                 key={value}
-                className="relative flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 font-medium transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50/50"
+                className="relative flex cursor-pointer items-center justify-center rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3 py-2.5 text-sm text-[#4A5A6E] font-medium transition has-[:checked]:border-[#0F1B2D] has-[:checked]:bg-[#0F1B2D] has-[:checked]:text-[#C8FF3E] hover:border-[#0F1B2D]"
               >
                 <input type="radio" name="purpose" value={value} required defaultChecked={prefill?.purpose === value} className="sr-only" />
                 {label}
@@ -457,14 +457,14 @@ export default function ScriptForm() {
 
         {/* 生成タイプ */}
         <div className="space-y-2.5">
-          <label className="block text-sm font-medium text-gray-700">
-            生成タイプ <span className="text-indigo-500">*</span>
+          <label className="block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E]">
+            生成タイプ <span className="text-[#C8FF3E] bg-[#0F1B2D] rounded px-1">必須</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {SCRIPT_TYPES.map(({ value, label }) => (
               <label
                 key={value}
-                className="relative flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 font-medium transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50/50"
+                className="relative flex cursor-pointer items-center justify-center rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3 py-2.5 text-sm text-[#4A5A6E] font-medium transition has-[:checked]:border-[#0F1B2D] has-[:checked]:bg-[#0F1B2D] has-[:checked]:text-[#C8FF3E] hover:border-[#0F1B2D]"
               >
                 <input type="radio" name="scriptType" value={value} required defaultChecked={prefill?.scriptType === value} className="sr-only" />
                 {label}
@@ -474,7 +474,7 @@ export default function ScriptForm() {
         </div>
 
         {error && (
-          <p className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+          <p className="rounded-[12px] bg-[#D9534F]/10 border border-[#D9534F]/30 px-4 py-3 text-sm text-[#D9534F]">
             {error}
           </p>
         )}
@@ -487,7 +487,7 @@ export default function ScriptForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full rounded-xl bg-indigo-600 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-200 hover:bg-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+            className="w-full rounded-[14px] bg-[#0F1B2D] py-5 text-base font-black text-[#C8FF3E] hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
@@ -506,19 +506,19 @@ export default function ScriptForm() {
                 生成中...
               </span>
             ) : (
-              "スクリプトを生成する"
+              "スクリプトを生成する →"
             )}
           </button>
         )}
 
         {/* 下部：無制限版登録リンク（常時表示） */}
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-[#4A5A6E]">
           正式版では無制限でご利用いただけます。{" "}
           <a
             href="https://forms.gle/xPoQcpJBbGiiFGY39"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-indigo-500 underline underline-offset-2 hover:text-indigo-600 transition-colors"
+            className="font-medium text-[#0F1B2D] underline underline-offset-2 hover:bg-[#C8FF3E] transition-colors"
           >
             無制限版登録フォーム
           </a>
@@ -534,9 +534,9 @@ export default function ScriptForm() {
       )}
 
       {isLoading && (
-        <div className="w-full max-w-2xl mx-auto rounded-2xl border border-indigo-100 bg-white p-10 flex flex-col items-center gap-4 shadow-xl shadow-indigo-100">
-          <div className="h-10 w-10 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
-          <p className="text-sm text-gray-500">生成中・・・　営業Tipsを👇に掲載中</p>
+        <div className="w-full max-w-2xl mx-auto rounded-[20px] border-2 border-[#0F1B2D] bg-white p-10 flex flex-col items-center gap-4 shadow-[0_8px_32px_rgba(15,27,45,0.08)]">
+          <div className="h-10 w-10 rounded-full border-4 border-[#E5E1D7] border-t-[#0F1B2D] animate-spin" />
+          <p className="text-sm text-[#4A5A6E]">生成中・・・　営業Tipsを👇に掲載中</p>
         </div>
       )}
 

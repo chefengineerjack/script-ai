@@ -50,14 +50,17 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
-        <div className="mx-auto max-w-5xl px-6 h-14 flex items-center justify-between">
-          <span className="text-base font-bold text-gray-900">営業スクリプトAI</span>
+      <nav className="sticky top-0 z-40 bg-[#F6F4EE] border-b border-[#E5E1D7]">
+        <div className="mx-auto max-w-6xl px-6 h-14 flex items-center justify-between">
+          {/* Logo */}
+          <span className="text-base font-black text-[#0F1B2D] tracking-tight">
+            営業スクリプトAI
+          </span>
 
           <div className="flex items-center gap-2 sm:gap-4">
             <a
               href="#form"
-              className="text-sm text-gray-500 hover:text-indigo-600 transition-colors px-2 py-1"
+              className="text-sm font-medium text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors px-2 py-1"
             >
               スクリプト生成
             </a>
@@ -66,7 +69,7 @@ export default function Navbar() {
             {user && (
               <a
                 href="/history"
-                className="hidden sm:block text-sm text-gray-500 hover:text-indigo-600 transition-colors px-2 py-1"
+                className="hidden sm:block text-sm font-medium text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors px-2 py-1"
               >
                 生成履歴
               </a>
@@ -79,7 +82,7 @@ export default function Navbar() {
               onMouseEnter={() => setGuideOpen(true)}
               onMouseLeave={() => setGuideOpen(false)}
             >
-              <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition-colors px-2 py-1">
+              <button className="flex items-center gap-1 text-sm font-medium text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors px-2 py-1">
                 営業フレームワーク解説
                 <svg
                   className={`w-3 h-3 transition-transform duration-150 ${guideOpen ? "rotate-180" : ""}`}
@@ -92,14 +95,14 @@ export default function Navbar() {
               </button>
               {guideOpen && (
                 <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50">
-                  <div className="bg-white rounded-xl border border-gray-100 shadow-lg py-1 w-52">
+                  <div className="bg-[#F6F4EE] rounded-[14px] border border-[#E5E1D7] shadow-[0_8px_32px_rgba(15,27,45,0.12)] py-1 w-52">
                     {guides.map((g) => (
                       <a
                         key={g.href}
                         href={g.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block px-4 py-2.5 text-sm text-gray-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                        className="block px-4 py-2.5 text-sm font-medium text-[#4A5A6E] hover:bg-[#0F1B2D] hover:text-[#C8FF3E] transition-colors"
                       >
                         {g.label}
                       </a>
@@ -109,9 +112,10 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* 料金プラン */}
             <a
               href="#pricing"
-              className="hidden sm:block rounded-lg bg-indigo-50 px-3.5 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+              className="hidden sm:block rounded-[14px] border border-[#0F1B2D] px-3.5 py-1.5 text-sm font-medium text-[#0F1B2D] hover:bg-[#0F1B2D] hover:text-[#F6F4EE] transition-colors"
             >
               料金プラン
             </a>
@@ -119,14 +123,14 @@ export default function Navbar() {
             {user ? (
               <div className="flex items-center gap-2">
                 <div className="hidden sm:flex items-center gap-1.5">
-                  <span className="text-xs text-gray-400 max-w-[120px] truncate">
+                  <span className="text-xs text-[#4A5A6E] max-w-[120px] truncate">
                     {user.email}
                   </span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                       user.plan === "standard"
-                        ? "bg-indigo-100 text-indigo-700"
-                        : "bg-gray-100 text-gray-500"
+                        ? "bg-[#C8FF3E] text-[#0F1B2D]"
+                        : "bg-[#E5E1D7] text-[#4A5A6E]"
                     }`}
                   >
                     {user.plan === "standard" ? "スタンダード" : "フリー"}
@@ -134,7 +138,7 @@ export default function Navbar() {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-colors"
+                  className="rounded-[14px] border border-[#E5E1D7] px-3 py-1.5 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors"
                 >
                   ログアウト
                 </button>
@@ -143,13 +147,13 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setAuthModal({ tab: "login" })}
-                  className="text-sm text-gray-500 hover:text-indigo-600 transition-colors px-2 py-1"
+                  className="text-sm font-medium text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors px-2 py-1"
                 >
                   ログイン
                 </button>
                 <button
                   onClick={() => setAuthModal({ tab: "register" })}
-                  className="rounded-lg bg-indigo-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+                  className="rounded-[14px] bg-[#0F1B2D] px-4 py-1.5 text-sm font-semibold text-[#F6F4EE] hover:opacity-90 transition-opacity"
                 >
                   新規登録
                 </button>

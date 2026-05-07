@@ -28,7 +28,7 @@ const ITEMS = [
 
 export default function TokushohoPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex flex-col bg-[#F6F4EE]">
       <Navbar />
 
       <main className="flex-1 px-6 py-16">
@@ -37,31 +37,31 @@ export default function TokushohoPage() {
           <div className="mb-10 space-y-2">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-500 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
               トップへ戻る
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-black text-[#0F1B2D]">
               特定商取引法に基づく表記
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#4A5A6E]">
               特定商取引法第11条に基づく通信販売の表示
             </p>
           </div>
 
           {/* テーブル */}
-          <div className="bg-white rounded-2xl shadow-xl shadow-indigo-100 border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-[20px] border-2 border-[#0F1B2D] overflow-hidden shadow-[0_8px_32px_rgba(15,27,45,0.08)]">
             <table className="w-full">
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-[#E5E1D7]">
                 {ITEMS.map(({ label, value }) => (
                   <tr key={label} className="flex flex-col sm:table-row">
-                    <th className="bg-gray-50 px-6 py-4 text-left text-sm font-semibold text-gray-700 sm:w-48 sm:shrink-0 whitespace-nowrap align-top">
+                    <th className="bg-[#F6F4EE] px-6 py-4 text-left text-sm font-bold text-[#0F1B2D] sm:w-48 sm:shrink-0 whitespace-nowrap align-top">
                       {label}
                     </th>
-                    <td className="px-6 py-4 text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                    <td className="px-6 py-4 text-sm text-[#4A5A6E] leading-relaxed whitespace-pre-line">
                       {value}
                     </td>
                   </tr>
@@ -71,22 +71,22 @@ export default function TokushohoPage() {
           </div>
 
           {/* お問い合わせ */}
-          <div className="mt-8 rounded-xl bg-indigo-50 border border-indigo-100 px-6 py-5">
-            <p className="text-sm font-semibold text-indigo-700 mb-1">お問い合わせ</p>
-            <p className="text-sm text-gray-600">
+          <div className="mt-8 rounded-[14px] bg-[#C8FF3E]/20 border border-[#C8FF3E]/40 px-6 py-5">
+            <p className="text-sm font-bold text-[#0F1B2D] mb-1">お問い合わせ</p>
+            <p className="text-sm text-[#4A5A6E]">
               ご不明な点は下記フォームよりご連絡ください。
             </p>
             <a
               href="https://forms.gle/33Gw9t2Ppt7V5dmu9"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-block text-sm text-indigo-600 underline underline-offset-2 hover:text-indigo-500 transition-colors"
+              className="mt-2 inline-block text-sm text-[#0F1B2D] underline underline-offset-2 hover:bg-[#C8FF3E] transition-colors font-medium"
             >
               お問い合わせフォーム
             </a>
           </div>
 
-          <p className="mt-6 text-xs text-gray-400 text-right">最終更新：2025年5月</p>
+          <p className="mt-6 text-xs text-[#4A5A6E] text-right">最終更新：2025年5月</p>
         </div>
       </main>
 
