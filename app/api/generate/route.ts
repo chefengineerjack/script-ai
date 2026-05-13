@@ -34,18 +34,40 @@ async function searchProductInfo(product: string): Promise<string> {
 }
 
 async function searchCompanyInfo(companyName: string, department: string): Promise<CompanyAnalysis> {
-  const searchResponse = await client.responses.create({
-    model: "gpt-4o",
-    tools: [{ type: "web_search_preview" }],
-    input: `「${companyName}」について以下の情報を日本語で調査してください：
+  const currentYear = new Date().getFullYear();
+
+  // 企業基本情報 + 財務情報の3クエリを並列実行
+  const [searchResponse, finResponse1, finResponse2, finResponse3] = await Promise.all([
+    client.responses.create({
+      model: "gpt-4o",
+      tools: [{ type: "web_search_preview" }],
+      input: `「${companyName}」について以下の情報を日本語で調査してください：
 1. 経営ビジョン・企業理念
 2. 中期経営計画の重点施策
 3. 直近のニュース・トピックス
 4. ${department}が担うであろう事業課題
 
 簡潔にまとめてください。`,
-  });
+    }),
+    client.responses.create({
+      model: "gpt-4o",
+      tools: [{ type: "web_search_preview" }],
+      input: `「${companyName} 決算 売上高 営業利益 最新」について日本語で調査し、直近の財務情報（売上高・前年比成長率・営業利益・利益率）を簡潔にまとめてください。`,
+    }),
+    client.responses.create({
+      model: "gpt-4o",
+      tools: [{ type: "web_search_preview" }],
+      input: `「${companyName} IR 決算短信 ${currentYear}」について日本語で調査し、最新の業績・業績予想・セグメント情報を簡潔にまとめてください。`,
+    }),
+    client.responses.create({
+      model: "gpt-4o",
+      tools: [{ type: "web_search_preview" }],
+      input: `「${companyName} 決算説明資料 重点投資」について日本語で調査し、重点投資領域・強化事業・注目すべき財務トレンドを簡潔にまとめてください。`,
+    }),
+  ]);
+
   const rawInfo = searchResponse.output_text;
+  const financialRaw = [finResponse1.output_text, finResponse2.output_text, finResponse3.output_text].join("\n\n---\n\n");
 
   const structuredResponse = await client.chat.completions.create({
     model: "gpt-4o",
@@ -59,8 +81,11 @@ async function searchCompanyInfo(companyName: string, department: string): Promi
         role: "user",
         content: `以下の企業調査情報をもとに、営業アプローチに役立つ企業分析をJSON形式で出力してください。
 
-調査情報：
+【企業基本情報】
 ${rawInfo}
+
+【財務情報（決算・IR調査結果）】
+${financialRaw}
 
 出力JSON：
 {
@@ -73,11 +98,23 @@ ${rawInfo}
     "estimatedChallenges": [
       { "challenge": "推定課題", "relevance": "高" }
     ],
-    "approachAdvice": "この企業への営業アプローチのアドバイス（100字以内）"
+    "approachAdvice": "この企業への営業アプローチのアドバイス（100字以内）",
+    "financialInfo": {
+      "latestFiscalYear": "対象決算期（例：2024年3月期）。情報がなければ空文字",
+      "revenue": "売上高（例：1兆2,345億円）。情報がなければ空文字",
+      "revenueGrowth": "前年比成長率（例：+8.3%）。情報がなければ空文字",
+      "operatingProfit": "営業利益（例：1,234億円）。情報がなければ空文字",
+      "operatingMargin": "営業利益率（例：10.2%）。情報がなければ空文字",
+      "keyInvestments": ["重点投資領域を3つまで。情報がなければ空配列"],
+      "financialTrend": "財務トレンドの要約（増収増益/減収減益など、100字以内）。情報がなければ空文字",
+      "salesOpportunity": "この財務状況から読み取れる営業アプローチのヒント（150字以内）。情報がなければ空文字",
+      "dataAvailable": true
+    }
   }
 }
 
 estimatedChallengesは3〜5個。relevanceは「高」か「中」のみ。
+非上場企業など財務情報が公開されていない場合は、financialInfo.dataAvailableをfalseにし、他の財務フィールドはすべて空文字・空配列にしてください。
 日本語で出力。JSON形式のみ。説明文や前置きは不要。`,
       },
     ],
@@ -115,6 +152,9 @@ function buildPhonePrompt(req: GenerateRequest, webInfo: string | null, companyA
     ? `\n- 以下のWeb調査結果から商材の実際の特徴・強みを活用すること：\n${webInfo}`
     : "";
   const companyLine = req.targetCompany ? `- ターゲット企業名: ${req.targetCompany}\n` : "";
+  const financialSection = companyAnalysis?.financialInfo?.dataAvailable
+    ? `\n- 財務情報（${companyAnalysis.financialInfo.latestFiscalYear}）:\n  - 売上高: ${companyAnalysis.financialInfo.revenue}（前年比 ${companyAnalysis.financialInfo.revenueGrowth}）\n  - 営業利益: ${companyAnalysis.financialInfo.operatingProfit}（利益率 ${companyAnalysis.financialInfo.operatingMargin}）\n  - 重点投資領域: ${companyAnalysis.financialInfo.keyInvestments.join("、")}\n  - 財務トレンド: ${companyAnalysis.financialInfo.financialTrend}\nこの企業の財務状況・重点投資領域を踏まえ、${dept}部門への提案に財務的な根拠を含めること。例：成長中の事業領域への投資を後押しする提案、コスト改善が求められる領域への効率化提案など`
+    : "";
   const companyAnalysisSection = companyAnalysis
     ? `\n━━━━━━━━━━━━━━━━━━━━━━━━━
 ターゲット企業分析情報
@@ -126,7 +166,7 @@ function buildPhonePrompt(req: GenerateRequest, webInfo: string | null, companyA
 - ${dept}との関連性: ${companyAnalysis.departmentRelevance}
 - 直近のニュース: ${companyAnalysis.recentNews}
 - 推定課題: ${companyAnalysis.estimatedChallenges.map((c) => `${c.challenge}（${c.relevance}）`).join("、")}
-- アプローチアドバイス: ${companyAnalysis.approachAdvice}\n`
+- アプローチアドバイス: ${companyAnalysis.approachAdvice}${financialSection}\n`
     : "";
 
   return `あなたは${req.targetIndustry}業界の${dept}への法人営業で15年の実績を持つトップセールスコンサルタントです。
@@ -278,6 +318,9 @@ function buildEmailPrompt(req: GenerateRequest, webInfo: string | null, companyA
     ? `\n- 以下のWeb調査結果から商材の実際の特徴・強みを活用すること：\n${webInfo}`
     : "";
   const companyLine = req.targetCompany ? `- ターゲット企業名: ${req.targetCompany}\n` : "";
+  const financialSection = companyAnalysis?.financialInfo?.dataAvailable
+    ? `\n- 財務情報（${companyAnalysis.financialInfo.latestFiscalYear}）:\n  - 売上高: ${companyAnalysis.financialInfo.revenue}（前年比 ${companyAnalysis.financialInfo.revenueGrowth}）\n  - 営業利益: ${companyAnalysis.financialInfo.operatingProfit}（利益率 ${companyAnalysis.financialInfo.operatingMargin}）\n  - 重点投資領域: ${companyAnalysis.financialInfo.keyInvestments.join("、")}\n  - 財務トレンド: ${companyAnalysis.financialInfo.financialTrend}\nこの企業の財務状況・重点投資領域を踏まえ、${dept}部門への提案に財務的な根拠を含めること。例：成長中の事業領域への投資を後押しする提案、コスト改善が求められる領域への効率化提案など`
+    : "";
   const companyAnalysisSection = companyAnalysis
     ? `\n━━━━━━━━━━━━━━━━━━━━━━━━━
 ターゲット企業分析情報
@@ -289,7 +332,7 @@ function buildEmailPrompt(req: GenerateRequest, webInfo: string | null, companyA
 - ${dept}との関連性: ${companyAnalysis.departmentRelevance}
 - 直近のニュース: ${companyAnalysis.recentNews}
 - 推定課題: ${companyAnalysis.estimatedChallenges.map((c) => `${c.challenge}（${c.relevance}）`).join("、")}
-- アプローチアドバイス: ${companyAnalysis.approachAdvice}\n`
+- アプローチアドバイス: ${companyAnalysis.approachAdvice}${financialSection}\n`
     : "";
 
   return `あなたは${req.targetIndustry}業界の${dept}向けBtoBメールマーケティングの専門家です。
@@ -436,7 +479,7 @@ export async function POST(request: Request) {
         return Response.json(
           {
             error:
-              "今月の生成回数（30回）を使い切りました。来月1日にリセットされます。",
+              "今月の生成回数（300回）を使い切りました。来月1日にリセットされます。",
             limitReached: true,
             remaining: 0,
             plan: "standard",
@@ -450,7 +493,7 @@ export async function POST(request: Request) {
         return Response.json(
           {
             error:
-              "本日の無料枠を使い切りました。スタンダードプラン（月額980円）なら月30回ご利用いただけます。",
+              "本日の無料枠を使い切りました。スタンダードプラン（月額980円）なら月300回ご利用いただけます。",
             limitReached: true,
             remaining: 0,
             plan: "free",

@@ -45,7 +45,7 @@ const PLANS: Plan[] = [
     period: "/月",
     tagline: "日常的に営業活動する方に",
     features: [
-      { label: "月30回まで生成", included: true },
+      { label: "月300回まで生成", included: true },
       { label: "電話スクリプト", included: true },
       { label: "メール営業文面", included: true },
       { label: "企業分析機能", included: true },

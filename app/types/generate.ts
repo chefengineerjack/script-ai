@@ -106,6 +106,18 @@ export type EstimatedChallenge = {
   relevance: "高" | "中";
 };
 
+export type FinancialInfo = {
+  latestFiscalYear: string;
+  revenue: string;
+  revenueGrowth: string;
+  operatingProfit: string;
+  operatingMargin: string;
+  keyInvestments: string[];
+  financialTrend: string;
+  salesOpportunity: string;
+  dataAvailable: boolean;
+};
+
 export type CompanyAnalysis = {
   companyName: string;
   vision: string;
@@ -114,6 +126,7 @@ export type CompanyAnalysis = {
   recentNews: string;
   estimatedChallenges: EstimatedChallenge[];
   approachAdvice: string;
+  financialInfo?: FinancialInfo;
 };
 
 // ── Plan restrictions ──────────────────────────────────────

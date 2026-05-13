@@ -13,7 +13,7 @@ const mem = new Map<string, number>();
 
 export const FREE_DAILY_LIMIT = 2;       // フリープラン: 1日2回
 export const GUEST_TOTAL_LIMIT = 1;      // 未ログイン: 合計1回
-export const STANDARD_MONTHLY_LIMIT = 30; // スタンダードプラン: 月30回
+export const STANDARD_MONTHLY_LIMIT = 300; // スタンダードプラン: 月300回
 
 function dateKey(): string {
   return new Date().toISOString().split("T")[0]; // UTC "YYYY-MM-DD"

@@ -439,6 +439,56 @@ function CompanyAnalysisCard({ analysis }: { analysis: CompanyAnalysis }) {
           <p className="text-xs font-bold text-[#0F1B2D] mb-1">アプローチアドバイス</p>
           <p className="text-sm text-[#0F1B2D] leading-relaxed">{analysis.approachAdvice}</p>
         </div>
+
+        {/* 財務情報セクション */}
+        {analysis.financialInfo ? (
+          analysis.financialInfo.dataAvailable ? (
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider">財務情報</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(
+                  [
+                    { label: "売上高", value: analysis.financialInfo.revenue },
+                    { label: "前年比", value: analysis.financialInfo.revenueGrowth },
+                    { label: "営業利益", value: analysis.financialInfo.operatingProfit },
+                    { label: "営業利益率", value: analysis.financialInfo.operatingMargin },
+                  ] as const
+                ).map(({ label, value }) =>
+                  value ? (
+                    <div key={label} className="rounded-[10px] bg-[#F6F4EE] border border-[#E5E1D7] px-3 py-2 text-center">
+                      <p className="text-[10px] text-[#4A5A6E] font-semibold">{label}</p>
+                      <p className="text-sm font-bold text-[#0F1B2D] mt-0.5 break-all">{value}</p>
+                    </div>
+                  ) : null
+                )}
+              </div>
+              {analysis.financialInfo.keyInvestments.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-bold text-[#4A5A6E]">重点投資:</span>
+                  {analysis.financialInfo.keyInvestments.map((inv, i) => (
+                    <span key={i} className="rounded-full bg-[#C8FF3E] px-2.5 py-0.5 text-xs font-semibold text-[#0F1B2D]">
+                      {inv}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {analysis.financialInfo.financialTrend && (
+                <p className="text-xs text-[#4A5A6E] leading-relaxed">{analysis.financialInfo.financialTrend}</p>
+              )}
+              {analysis.financialInfo.salesOpportunity && (
+                <div className="rounded-[10px] bg-blue-50 border border-blue-100 px-3 py-2.5">
+                  <p className="text-xs font-bold text-blue-700 mb-0.5">📈 営業アプローチヒント</p>
+                  <p className="text-xs text-blue-800 leading-relaxed">{analysis.financialInfo.salesOpportunity}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-[10px] bg-[#E5E1D7]/40 border border-[#E5E1D7] px-3 py-2.5 flex items-center gap-2">
+              <span className="text-sm">📋</span>
+              <p className="text-xs text-[#4A5A6E]">財務情報は公開されていません（非上場企業または情報未取得）</p>
+            </div>
+          )
+        ) : null}
       </div>
     </div>
   );
