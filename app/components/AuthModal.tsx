@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type Tab = "login" | "register";
 
@@ -127,6 +128,18 @@ export default function AuthModal({ defaultTab = "login", onSuccess, onClose }: 
               ? "ログイン"
               : "登録する（無料）"}
           </button>
+
+          {tab === "login" && (
+            <p className="text-center text-xs text-[#4A5A6E]">
+              <Link
+                href="/forgot-password"
+                onClick={onClose}
+                className="font-bold text-[#0F1B2D] underline underline-offset-2 hover:opacity-70 transition-opacity"
+              >
+                パスワードをお忘れですか？
+              </Link>
+            </p>
+          )}
 
           {tab === "register" && (
             <p className="text-center text-xs text-[#4A5A6E]">

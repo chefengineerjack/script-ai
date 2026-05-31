@@ -93,6 +93,28 @@ export async function updateUserPlan(
   mem.set(k, updated);
 }
 
+/** パスワードハッシュを更新 */
+export async function updateUserPassword(
+  email: string,
+  newPasswordHash: string
+): Promise<boolean> {
+  const existing = await getUserByEmail(email);
+  if (!existing) return false;
+
+  const updated: User = { ...existing, passwordHash: newPasswordHash };
+  const k = `user:${email.toLowerCase()}`;
+  if (redis) {
+    try {
+      await redis.set(k, updated);
+      return true;
+    } catch {
+      /* fallthrough */
+    }
+  }
+  mem.set(k, updated);
+  return true;
+}
+
 /** Stripe顧客IDからユーザーを検索（サブスクリプション解約時に使用） */
 export async function getUserByStripeCustomerId(
   customerId: string
