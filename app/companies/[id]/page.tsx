@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback, use, useRef } from "react";
 import Navbar from "@/app/components/Navbar";
 import Combobox from "@/app/components/Combobox";
 import OrgChart from "@/app/components/OrgChart";
@@ -40,6 +40,85 @@ const POSITIONS = [
 ];
 
 const LISTING_STATUSES: ListingStatus[] = ["上場", "非上場", "不明"];
+
+// ── CSV インポート ──────────────────────────────────────────
+
+type CsvRow = {
+  name: string;
+  parent_name: string;
+  head_count: number;
+  location: string;
+  role: string;
+  isDuplicate: boolean;
+  parentNotFound: boolean;
+};
+
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { current += '"'; i++; }
+        else inQuotes = false;
+      } else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { fields.push(current.trim()); current = ""; }
+      else { current += ch; }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+function processCsvText(text: string, existingDepts: Department[]): CsvRow[] {
+  const cleaned = text.replace(/^﻿/, "");
+  const lines = cleaned.split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+
+  const existingNames = new Set(existingDepts.map((d) => d.name));
+  const seenNames = new Set<string>();
+  const rows: CsvRow[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCsvLine(lines[i]);
+    const name = (fields[0] ?? "").trim();
+    if (!name) continue;
+    const isDuplicate = existingNames.has(name) || seenNames.has(name);
+    if (!isDuplicate) seenNames.add(name);
+    rows.push({
+      name,
+      parent_name: (fields[1] ?? "").trim(),
+      head_count: parseInt(fields[2] ?? "0", 10) || 0,
+      location: (fields[3] ?? "").trim(),
+      role: (fields[4] ?? "").trim(),
+      isDuplicate,
+      parentNotFound: false,
+    });
+  }
+
+  const willExistNames = new Set([
+    ...existingNames,
+    ...rows.filter((r) => !r.isDuplicate).map((r) => r.name),
+  ]);
+  rows.forEach((r) => {
+    if (r.parent_name && !willExistNames.has(r.parent_name)) r.parentNotFound = true;
+  });
+
+  return rows;
+}
+
+function buildCsvDisplayTree(rows: CsvRow[]): { row: CsvRow; depth: number }[] {
+  const nameToDepth = new Map<string, number>();
+  return rows.map((row) => {
+    const depth = row.parent_name ? (nameToDepth.get(row.parent_name) ?? -1) + 1 : 0;
+    nameToDepth.set(row.name, depth);
+    return { row, depth };
+  });
+}
 
 type FetchedInfo = {
   industry: string | null;
@@ -602,6 +681,12 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
   const [creatingRoot, setCreatingRoot] = useState(false);
   const [filteredDeptName, setFilteredDeptName] = useState<string | null>(null);
 
+  // CSV インポート
+  const csvInputRef = useRef<HTMLInputElement>(null);
+  const [csvPreview, setCsvPreview] = useState<CsvRow[] | null>(null);
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [importingCsv, setImportingCsv] = useState(false);
+
   const fetchCompany = useCallback(async () => {
     const res = await fetch(`/api/companies/${id}`);
     if (res.status === 404) { setNotFound(true); setLoading(false); return; }
@@ -739,6 +824,78 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     setCreatingRoot(false);
   }
 
+  function handleCsvImportClick() {
+    setCsvError(null);
+    csvInputRef.current?.click();
+  }
+
+  function handleDownloadSampleCsv() {
+    const csv = [
+      "部署名,親部署名,人数,所在地,役割",
+      "経営本部,,10,東京本社,全社戦略の立案と実行",
+      "営業部,経営本部,30,東京本社,法人向け営業活動",
+      "東日本営業チーム,営業部,15,東京本社,東日本エリア担当",
+      "西日本営業チーム,営業部,15,大阪支社,西日本エリア担当",
+      "マーケティング部,経営本部,10,東京本社,マーケティング戦略の策定",
+      "技術部,経営本部,20,東京本社,システム開発と技術支援",
+    ].join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "組織図サンプル.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setCsvError("CSVファイル（.csv）を選択してください");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const rows = processCsvText(text, departments);
+      if (rows.length === 0) { setCsvError("有効なデータが見つかりませんでした"); return; }
+      setCsvPreview(rows);
+    };
+    reader.readAsText(file);
+  }
+
+  async function handleCsvImport() {
+    if (!csvPreview) return;
+    setImportingCsv(true);
+    try {
+      const toImport = csvPreview.filter((r) => !r.isDuplicate);
+      const nameToId = new Map<string, string>(departments.map((d) => [d.name, d.id]));
+      const newDepts: Department[] = toImport.map((r) => ({
+        id: crypto.randomUUID(),
+        company_id: id,
+        name: r.name,
+        parent_id: null,
+        head_count: r.head_count,
+        location: r.location,
+        role: r.role,
+        pain_points: [],
+        children: [],
+      }));
+      toImport.forEach((r, i) => { nameToId.set(r.name, newDepts[i].id); });
+      toImport.forEach((r, i) => {
+        if (r.parent_name && nameToId.has(r.parent_name)) {
+          newDepts[i].parent_id = nameToId.get(r.parent_name)!;
+        }
+      });
+      await handleSaveOrgChart(newDepts, []);
+      setCsvPreview(null);
+    } finally {
+      setImportingCsv(false);
+    }
+  }
+
   const orgDeptNames = departments.map((d) => d.name);
   const contactDeptNames = [...new Set(contacts.map((c) => c.department).filter(Boolean))] as string[];
   const usedDepartments = [...new Set([...orgDeptNames, ...contactDeptNames.filter((n) => !orgDeptNames.includes(n))])];
@@ -802,6 +959,54 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
       )}
       {deleteCompanyConfirm && (
         <DeleteModal label={`「${company.official_name}」とすべての担当者データ`} onConfirm={handleDeleteCompany} onCancel={() => setDeleteCompanyConfirm(false)} />
+      )}
+      {csvPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1B2D]/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg bg-white rounded-[20px] border-2 border-[#0F1B2D] shadow-[0_24px_64px_rgba(15,27,45,0.2)] max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-[#E5E1D7] px-6 py-4 shrink-0">
+              <div>
+                <h2 className="text-lg font-black text-[#0F1B2D]">CSVインポート確認</h2>
+                <p className="text-xs text-[#4A5A6E] mt-0.5">
+                  {csvPreview.filter((r) => !r.isDuplicate).length}件インポート・{csvPreview.filter((r) => r.isDuplicate).length}件スキップ（重複）
+                </p>
+              </div>
+              <button onClick={() => setCsvPreview(null)} className="rounded-full p-1.5 hover:bg-[#E5E1D7] transition-colors">
+                <svg className="w-5 h-5 text-[#4A5A6E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              {buildCsvDisplayTree(csvPreview).map(({ row, depth }, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-2 py-2 rounded-[8px] transition-colors ${row.isDuplicate ? "opacity-40" : "hover:bg-[#F6F4EE]"}`}
+                  style={{ paddingLeft: `${12 + depth * 20}px`, paddingRight: "12px" }}
+                >
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${row.isDuplicate ? "bg-gray-300" : depth === 0 ? "bg-[#0F1B2D]" : depth === 1 ? "bg-blue-400" : "bg-teal-400"}`} />
+                  <span className="text-sm text-[#0F1B2D] flex-1 truncate">{row.name}</span>
+                  {row.head_count > 0 && <span className="text-xs text-[#4A5A6E] shrink-0">{row.head_count}名</span>}
+                  {row.isDuplicate && (
+                    <span className="text-[10px] bg-gray-100 text-gray-500 rounded-full px-2 py-0.5 font-medium shrink-0">重複のため除外</span>
+                  )}
+                  {row.parentNotFound && !row.isDuplicate && (
+                    <span className="text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium shrink-0">親部署不明</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-[#E5E1D7] px-6 py-4 shrink-0 flex gap-3">
+              <button onClick={() => setCsvPreview(null)} className="flex-1 rounded-[12px] border border-[#E5E1D7] py-2.5 text-sm font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">キャンセル</button>
+              <button
+                onClick={handleCsvImport}
+                disabled={importingCsv || csvPreview.filter((r) => !r.isDuplicate).length === 0}
+                className="flex-1 rounded-[12px] bg-[#0F1B2D] py-2.5 text-sm font-bold text-[#C8FF3E] hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {importingCsv ? "インポート中..." : "インポートする"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="min-h-screen bg-[#F6F4EE]">
@@ -1063,20 +1268,44 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                 <h2 className="text-base font-black text-[#0F1B2D]">部署・組織図</h2>
                 <span className="text-xs text-[#4A5A6E]">{departments.length}部署</span>
               </div>
-              {departments.length > 0 && (
-                <div className="flex items-center gap-1 bg-[#F6F4EE] rounded-[10px] p-1">
-                  {(["tree", "chart"] as const).map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setOrgView(v)}
-                      className={`px-3 py-1 rounded-[8px] text-xs font-medium transition-colors ${orgView === v ? "bg-white text-[#0F1B2D] shadow-sm" : "text-[#4A5A6E] hover:text-[#0F1B2D]"}`}
-                    >
-                      {v === "tree" ? "ツリー" : "組織図"}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleDownloadSampleCsv}
+                  className="flex items-center gap-1 text-xs font-medium text-[#4A5A6E] border border-[#E5E1D7] rounded-[8px] px-2.5 py-1.5 hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors"
+                >
+                  サンプルCSV
+                </button>
+                <button
+                  onClick={handleCsvImportClick}
+                  className="flex items-center gap-1 text-xs font-bold text-[#0F1B2D] border border-[#0F1B2D] rounded-[8px] px-2.5 py-1.5 hover:bg-[#0F1B2D] hover:text-[#C8FF3E] transition-colors"
+                >
+                  📥 CSVインポート
+                </button>
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleCsvFileSelect}
+                />
+                {departments.length > 0 && (
+                  <div className="flex items-center gap-1 bg-[#F6F4EE] rounded-[10px] p-1">
+                    {(["tree", "chart"] as const).map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setOrgView(v)}
+                        className={`px-3 py-1 rounded-[8px] text-xs font-medium transition-colors ${orgView === v ? "bg-white text-[#0F1B2D] shadow-sm" : "text-[#4A5A6E] hover:text-[#0F1B2D]"}`}
+                      >
+                        {v === "tree" ? "ツリー" : "組織図"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+            {csvError && (
+              <div className="px-6 py-2.5 bg-red-50 border-b border-red-100 text-xs text-[#D9534F]">{csvError}</div>
+            )}
 
             <div className="p-4 sm:p-6">
               {loadingDepts ? (

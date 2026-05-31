@@ -381,6 +381,11 @@ export default function OrgChart({ departments, contacts = [], onSelect, selecte
     return <p className="text-sm text-[#4A5A6E] py-4 text-center">部署情報がありません</p>;
   }
 
+  const existingDeptNames = new Set(localDepts.map((d) => d.name));
+  const contactDeptSuggestions = [...new Set(
+    contacts.map((c) => c.department).filter(Boolean) as string[]
+  )].filter((n) => !existingDeptNames.has(n));
+
   const boxProps = {
     allDepts: localDepts,
     contacts,
@@ -452,15 +457,38 @@ export default function OrgChart({ departments, contacts = [], onSelect, selecte
             <p className="text-sm font-black text-[#0F1B2D] mb-3">
               「{localDepts.find((d) => d.id === addingChildOf)?.name}」に子部署を追加
             </p>
-            <input
-              type="text"
-              value={newDeptName}
-              onChange={(e) => setNewDeptName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleConfirmAdd()}
-              autoFocus
-              placeholder="部署名を入力…"
-              className="w-full border-[1.5px] border-[#E5E1D7] rounded-[12px] px-3.5 py-2.5 text-sm text-[#0F1B2D] focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10 mb-4"
-            />
+            <div className="relative mb-4">
+              <input
+                type="text"
+                value={newDeptName}
+                onChange={(e) => setNewDeptName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleConfirmAdd()}
+                autoFocus
+                placeholder="部署名を入力…"
+                className="w-full border-[1.5px] border-[#E5E1D7] rounded-[12px] px-3.5 py-2.5 text-sm text-[#0F1B2D] focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10"
+              />
+              {contactDeptSuggestions.filter((n) =>
+                !newDeptName || n.toLowerCase().includes(newDeptName.toLowerCase())
+              ).length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-[#E5E1D7] rounded-[12px] shadow-lg overflow-hidden z-10">
+                  <p className="text-[10px] font-bold text-[#4A5A6E] uppercase tracking-wider px-3 pt-2 pb-1">担当者の部署名から選択</p>
+                  <div className="max-h-36 overflow-y-auto pb-1">
+                    {contactDeptSuggestions
+                      .filter((n) => !newDeptName || n.toLowerCase().includes(newDeptName.toLowerCase()))
+                      .map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onMouseDown={(e) => { e.preventDefault(); setNewDeptName(name); }}
+                          className="w-full text-left px-3 py-2 text-sm text-[#0F1B2D] hover:bg-[#F6F4EE] transition-colors"
+                        >
+                          {name}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setAddingChildOf(null)}
