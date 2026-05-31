@@ -34,7 +34,10 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
-  const { official_name, industry, company_size, status, notes } = body;
+  const {
+    official_name, industry, company_size, status, notes,
+    established_year, capital, headquarters, business_description, listing_status,
+  } = body;
 
   const db = createServerClient();
 
@@ -55,6 +58,8 @@ export async function PUT(
     ...(notes !== undefined ? { notes } : {}),
   };
 
+  const VALID_LISTING = ["上場", "非上場", "不明"];
+
   const { data, error } = await db
     .from("companies")
     .update({
@@ -62,6 +67,11 @@ export async function PUT(
       ...(industry !== undefined && { industry: industry || null }),
       ...(company_size !== undefined && { company_size: company_size || null }),
       ...(status !== undefined && { status }),
+      ...(established_year !== undefined && { established_year: established_year || null }),
+      ...(capital !== undefined && { capital: capital || null }),
+      ...(headquarters !== undefined && { headquarters: headquarters || null }),
+      ...(business_description !== undefined && { business_description: business_description || null }),
+      ...(listing_status !== undefined && { listing_status: VALID_LISTING.includes(listing_status) ? listing_status : "不明" }),
       analysis_data: updatedAnalysis,
       updated_at: new Date().toISOString(),
     })

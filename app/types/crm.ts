@@ -29,6 +29,8 @@ export const COMPANY_SIZES = [
 
 export type CompanySize = (typeof COMPANY_SIZES)[number];
 
+export type ListingStatus = "上場" | "非上場" | "不明";
+
 export type Company = {
   id: string;
   user_id: string;
@@ -36,6 +38,11 @@ export type Company = {
   name_aliases: string[];
   industry: string | null;
   company_size: string | null;
+  established_year: string | null;
+  capital: string | null;
+  headquarters: string | null;
+  business_description: string | null;
+  listing_status: ListingStatus | null;
   analysis_data: { notes?: string; [key: string]: unknown } | null;
   financial_data: Record<string, unknown> | null;
   status: CompanyStatus;

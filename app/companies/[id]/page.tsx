@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, use } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import Navbar from "@/app/components/Navbar";
-import type { Company, Contact, CompanyStatus, ContactRole } from "@/app/types/crm";
+import Combobox from "@/app/components/Combobox";
+import type { Company, Contact, CompanyStatus, ContactRole, ListingStatus } from "@/app/types/crm";
 import {
   COMPANY_STATUSES,
   COMPANY_SIZES,
@@ -17,14 +18,47 @@ const INDUSTRIES = [
 ];
 
 const DEPARTMENTS = [
-  "営業部", "マーケティング部", "経営企画部", "情報システム部・IT推進部",
-  "人事部", "総務部", "経理・財務部", "購買・調達部",
-  "開発・エンジニアリング部", "カスタマーサポート部", "法務部",
+  "営業部", "営業企画部", "マーケティング部", "広報部",
+  "情報システム部", "IT推進部", "DX推進部",
+  "経営企画部", "事業企画部",
+  "総務部", "人事部", "労務部",
+  "経理部", "財務部",
+  "購買部", "調達部",
+  "生産管理部", "製造部", "品質管理部",
+  "物流部", "サプライチェーン部",
+  "研究開発部", "技術部",
+  "カスタマーサポート部",
 ];
 
-const POSITIONS = ["経営者・役員", "部長クラス", "課長・マネージャー", "担当者", "その他"];
+const POSITIONS = [
+  "代表取締役", "取締役", "執行役員",
+  "本部長", "部長", "副部長",
+  "課長", "副課長", "係長",
+  "主任", "リーダー",
+  "担当", "スタッフ",
+];
 
-// ── 共通スタイル ────────────────────────────────────────────
+const LISTING_STATUSES: ListingStatus[] = ["上場", "非上場", "不明"];
+
+type FetchedInfo = {
+  industry: string | null;
+  established_year: string | null;
+  capital: string | null;
+  headquarters: string | null;
+  business_description: string | null;
+  listing_status: string | null;
+};
+
+type FetchField = { key: keyof FetchedInfo; label: string };
+
+const FETCH_FIELDS: FetchField[] = [
+  { key: "industry", label: "業種" },
+  { key: "established_year", label: "設立年" },
+  { key: "capital", label: "資本金" },
+  { key: "headquarters", label: "本社所在地" },
+  { key: "business_description", label: "事業内容" },
+  { key: "listing_status", label: "上場区分" },
+];
 
 const inputClass = "w-full rounded-[12px] border-[1.5px] border-[#E5E1D7] bg-white px-3.5 py-2.5 text-sm text-[#0F1B2D] focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10 transition";
 const labelClass = "block text-[11px] font-bold uppercase tracking-[1px] text-[#4A5A6E] mb-1.5";
@@ -47,16 +81,142 @@ function RoleBadge({ role }: { role: ContactRole }) {
   );
 }
 
+// ── 公開情報確認モーダル ────────────────────────────────────
+
+function FetchInfoModal({
+  company,
+  fetchedInfo,
+  onApply,
+  onClose,
+}: {
+  company: Company;
+  fetchedInfo: FetchedInfo;
+  onApply: (selected: Record<string, string | null>) => void;
+  onClose: () => void;
+}) {
+  const currentValues: Record<string, string | null> = {
+    industry: company.industry,
+    established_year: company.established_year,
+    capital: company.capital,
+    headquarters: company.headquarters,
+    business_description: company.business_description,
+    listing_status: company.listing_status,
+  };
+
+  const [checked, setChecked] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    FETCH_FIELDS.forEach(({ key }) => { init[key] = fetchedInfo[key] != null; });
+    return init;
+  });
+
+  function handleApply() {
+    const selected: Record<string, string | null> = {};
+    FETCH_FIELDS.forEach(({ key }) => {
+      if (checked[key]) selected[key] = fetchedInfo[key];
+    });
+    onApply(selected);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1B2D]/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg bg-white rounded-[20px] border-2 border-[#0F1B2D] shadow-[0_24px_64px_rgba(15,27,45,0.2)] max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between border-b border-[#E5E1D7] px-6 py-4 shrink-0">
+          <div>
+            <h2 className="text-lg font-black text-[#0F1B2D]">公開情報を確認</h2>
+            <p className="text-xs text-[#4A5A6E] mt-0.5">反映する項目にチェックを入れてください</p>
+          </div>
+          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-[#E5E1D7] transition-colors">
+            <svg className="w-5 h-5 text-[#4A5A6E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+          {FETCH_FIELDS.map(({ key, label }) => {
+            const fetched = fetchedInfo[key];
+            const current = currentValues[key];
+            const available = fetched != null;
+            const hasDiff = available && current && current !== fetched;
+            const isSame = available && current === fetched;
+
+            return (
+              <div
+                key={key}
+                className={`rounded-[12px] border p-4 ${
+                  available ? "border-[#E5E1D7] bg-white" : "border-[#E5E1D7] bg-[#F6F4EE] opacity-60"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={checked[key] ?? false}
+                    disabled={!available}
+                    onChange={(e) => setChecked((prev) => ({ ...prev, [key]: e.target.checked }))}
+                    className="mt-0.5 accent-[#0F1B2D] w-4 h-4 shrink-0 cursor-pointer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#4A5A6E] mb-1">{label}</p>
+                    {available ? (
+                      <>
+                        <p className="text-sm font-medium text-[#0F1B2D]">{fetched}</p>
+                        {hasDiff && (
+                          <p className="text-xs text-[#4A5A6E] mt-1">
+                            現在: <span className="line-through">{current}</span>
+                            {" → "}
+                            <span className="text-[#1F8A5B] font-semibold">{fetched}</span>
+                          </p>
+                        )}
+                        {isSame && (
+                          <p className="text-xs text-[#4A5A6E] mt-1">現在の値と同じです</p>
+                        )}
+                        {!current && !isSame && (
+                          <p className="text-xs text-[#4A5A6E] mt-1">新規に設定されます</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-[#4A5A6E]">取得できませんでした</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-[#E5E1D7] px-6 py-4 shrink-0 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-[12px] border border-[#E5E1D7] py-2.5 text-sm font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleApply}
+            className="flex-1 rounded-[12px] bg-[#0F1B2D] py-2.5 text-sm font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity"
+          >
+            選択した項目を反映
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── 担当者フォームモーダル ──────────────────────────────────
 
 function ContactFormModal({
   companyId,
   initialData,
+  usedDepartments,
+  usedPositions,
   onClose,
   onSaved,
 }: {
   companyId: string;
   initialData?: Contact;
+  usedDepartments: string[];
+  usedPositions: string[];
   onClose: () => void;
   onSaved: (contact: Contact) => void;
 }) {
@@ -88,7 +248,7 @@ function ContactFormModal({
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "保存に失敗しました"); return; }
-      onSaved(isEdit ? data.contact : data.contact);
+      onSaved(data.contact);
     } finally {
       setSubmitting(false);
     }
@@ -114,17 +274,27 @@ function ContactFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>部門</label>
-              <select value={department} onChange={(e) => setDepartment(e.target.value)} className={inputClass}>
-                <option value="">選択</option>
-                {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <Combobox
+                value={department}
+                onChange={setDepartment}
+                options={DEPARTMENTS}
+                usedValues={usedDepartments}
+                usedLabel="この企業で使用済み"
+                optionsLabel="よく使われる部署名"
+                placeholder="部署名を入力または選択"
+              />
             </div>
             <div>
               <label className={labelClass}>役職</label>
-              <select value={position} onChange={(e) => setPosition(e.target.value)} className={inputClass}>
-                <option value="">選択</option>
-                {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <Combobox
+                value={position}
+                onChange={setPosition}
+                options={POSITIONS}
+                usedValues={usedPositions}
+                usedLabel="この企業で使用済み"
+                optionsLabel="よく使われる役職"
+                placeholder="役職を入力または選択"
+              />
             </div>
           </div>
           <div>
@@ -228,7 +398,6 @@ function ContactCard({
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-bold text-[#0F1B2D]">{contact.name}</p>
             {contact.role && <RoleBadge role={contact.role} />}
-            {/* 架電状態アイコン（第2段階で色ロジック追加予定） */}
             <svg className="w-4 h-4 text-[#E5E1D7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
@@ -309,7 +478,17 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
   const [editSize, setEditSize] = useState("");
   const [editStatus, setEditStatus] = useState<CompanyStatus>("未接触");
   const [editNotes, setEditNotes] = useState("");
+  const [editEstablishedYear, setEditEstablishedYear] = useState("");
+  const [editCapital, setEditCapital] = useState("");
+  const [editHeadquarters, setEditHeadquarters] = useState("");
+  const [editBusinessDescription, setEditBusinessDescription] = useState("");
+  const [editListingStatus, setEditListingStatus] = useState<ListingStatus>("不明");
   const [saving, setSaving] = useState(false);
+
+  // 公開情報取得
+  const [fetchingInfo, setFetchingInfo] = useState(false);
+  const [fetchedInfo, setFetchedInfo] = useState<FetchedInfo | null>(null);
+  const [showFetchModal, setShowFetchModal] = useState(false);
 
   // 担当者
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -331,6 +510,11 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     setEditSize(c.company_size ?? "");
     setEditStatus(c.status);
     setEditNotes(c.analysis_data?.notes ?? "");
+    setEditEstablishedYear(c.established_year ?? "");
+    setEditCapital(c.capital ?? "");
+    setEditHeadquarters(c.headquarters ?? "");
+    setEditBusinessDescription(c.business_description ?? "");
+    setEditListingStatus(c.listing_status ?? "不明");
     setLoading(false);
   }, [id]);
 
@@ -342,13 +526,52 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     const res = await fetch(`/api/companies/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ official_name: editName, industry: editIndustry, company_size: editSize, status: editStatus, notes: editNotes }),
+      body: JSON.stringify({
+        official_name: editName,
+        industry: editIndustry,
+        company_size: editSize,
+        status: editStatus,
+        notes: editNotes,
+        established_year: editEstablishedYear || null,
+        capital: editCapital || null,
+        headquarters: editHeadquarters || null,
+        business_description: editBusinessDescription || null,
+        listing_status: editListingStatus,
+      }),
     });
-    const data = await res.json();
     if (res.ok) {
-      setCompany({ ...company, ...data.company, contacts: company.contacts });
+      await fetchCompany();
       setEditMode(false);
     }
+    setSaving(false);
+  }
+
+  async function handleFetchInfo() {
+    setFetchingInfo(true);
+    try {
+      const res = await fetch(`/api/companies/${id}/fetch-info`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setFetchedInfo(data.info);
+        setShowFetchModal(true);
+      }
+    } finally {
+      setFetchingInfo(false);
+    }
+  }
+
+  async function handleApplyFetchedInfo(selected: Record<string, string | null>) {
+    setSaving(true);
+    const res = await fetch(`/api/companies/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(selected),
+    });
+    if (res.ok) {
+      await fetchCompany();
+    }
+    setShowFetchModal(false);
+    setFetchedInfo(null);
     setSaving(false);
   }
 
@@ -374,6 +597,10 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     setEditingContact(undefined);
   }
 
+  // 担当者から使用済み部署・役職を抽出
+  const usedDepartments = [...new Set(contacts.map((c) => c.department).filter(Boolean))] as string[];
+  const usedPositions = [...new Set(contacts.map((c) => c.position).filter(Boolean))] as string[];
+
   if (loading) {
     return (
       <>
@@ -392,9 +619,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
         <div className="min-h-screen bg-[#F6F4EE] flex items-center justify-center">
           <div className="text-center">
             <p className="text-sm text-[#4A5A6E] mb-4">企業が見つかりません</p>
-            <a href="/companies" className="rounded-[12px] bg-[#0F1B2D] px-6 py-2.5 text-sm font-bold text-[#C8FF3E]">
-              一覧に戻る
-            </a>
+            <a href="/companies" className="rounded-[12px] bg-[#0F1B2D] px-6 py-2.5 text-sm font-bold text-[#C8FF3E]">一覧に戻る</a>
           </div>
         </div>
       </>
@@ -406,10 +631,20 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
       <Navbar />
 
       {/* モーダル類 */}
+      {showFetchModal && fetchedInfo && (
+        <FetchInfoModal
+          company={company}
+          fetchedInfo={fetchedInfo}
+          onApply={handleApplyFetchedInfo}
+          onClose={() => { setShowFetchModal(false); setFetchedInfo(null); }}
+        />
+      )}
       {(showContactForm || editingContact) && (
         <ContactFormModal
           companyId={id}
           initialData={editingContact}
+          usedDepartments={usedDepartments}
+          usedPositions={usedPositions}
           onClose={() => { setShowContactForm(false); setEditingContact(undefined); }}
           onSaved={handleContactSaved}
         />
@@ -443,6 +678,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 企業情報カード */}
           <div className="bg-white rounded-[20px] border-2 border-[#0F1B2D] shadow-[0_8px_32px_rgba(15,27,45,0.08)] mb-6 overflow-hidden">
+            {/* カードヘッダー */}
             <div className="border-b border-[#E5E1D7] bg-[#F6F4EE] px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
                 <span className="text-xl">🏢</span>
@@ -451,8 +687,24 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                   {!editMode && <h1 className="text-xl font-black text-[#0F1B2D]">{company.official_name}</h1>}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {!editMode && <StatusBadge status={company.status} />}
+                {!editMode && (
+                  <button
+                    onClick={handleFetchInfo}
+                    disabled={fetchingInfo}
+                    className="flex items-center gap-1.5 rounded-[10px] border border-[#E5E1D7] px-3 py-1.5 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors disabled:opacity-50"
+                  >
+                    {fetchingInfo ? (
+                      <>
+                        <span className="inline-block h-3 w-3 rounded-full border-2 border-[#E5E1D7] border-t-[#0F1B2D] animate-spin" />
+                        取得中...
+                      </>
+                    ) : (
+                      <>🔍 公開情報を取得</>
+                    )}
+                  </button>
+                )}
                 {!editMode ? (
                   <button onClick={() => setEditMode(true)} className="flex items-center gap-1.5 rounded-[10px] border border-[#E5E1D7] px-3 py-1.5 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -471,6 +723,17 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
+            {/* 取得中メッセージ */}
+            {fetchingInfo && (
+              <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2 text-xs text-blue-600">
+                <svg className="w-4 h-4 shrink-0 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                ウェブから公開情報を取得しています。10〜30秒かかる場合があります...
+              </div>
+            )}
+
+            {/* 企業情報本体 */}
             <div className="p-6">
               {editMode ? (
                 <div className="space-y-4">
@@ -500,9 +763,33 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                       </select>
                     </div>
                   </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelClass}>設立年</label>
+                      <input type="text" value={editEstablishedYear} onChange={(e) => setEditEstablishedYear(e.target.value)} placeholder="例：1995年" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>資本金</label>
+                      <input type="text" value={editCapital} onChange={(e) => setEditCapital(e.target.value)} placeholder="例：1億円" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>上場区分</label>
+                      <select value={editListingStatus} onChange={(e) => setEditListingStatus(e.target.value as ListingStatus)} className={inputClass}>
+                        {LISTING_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>本社所在地</label>
+                    <input type="text" value={editHeadquarters} onChange={(e) => setEditHeadquarters(e.target.value)} placeholder="例：東京都渋谷区" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>事業内容</label>
+                    <textarea value={editBusinessDescription} onChange={(e) => setEditBusinessDescription(e.target.value)} rows={2} placeholder="100字以内で事業内容を記載" className={`${inputClass} resize-none`} />
+                  </div>
                   <div>
                     <label className={labelClass}>メモ</label>
-                    <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={4} className={`${inputClass} resize-none`} />
+                    <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3} className={`${inputClass} resize-none`} />
                   </div>
                 </div>
               ) : (
@@ -515,6 +802,36 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                     <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">企業規模</p>
                     <p className="text-sm text-[#0F1B2D]">{company.company_size ?? "—"}</p>
                   </div>
+                  {company.established_year && (
+                    <div>
+                      <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">設立年</p>
+                      <p className="text-sm text-[#0F1B2D]">{company.established_year}</p>
+                    </div>
+                  )}
+                  {company.capital && (
+                    <div>
+                      <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">資本金</p>
+                      <p className="text-sm text-[#0F1B2D]">{company.capital}</p>
+                    </div>
+                  )}
+                  {company.listing_status && company.listing_status !== "不明" && (
+                    <div>
+                      <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">上場区分</p>
+                      <p className="text-sm text-[#0F1B2D]">{company.listing_status}</p>
+                    </div>
+                  )}
+                  {company.headquarters && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">本社所在地</p>
+                      <p className="text-sm text-[#0F1B2D]">{company.headquarters}</p>
+                    </div>
+                  )}
+                  {company.business_description && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">事業内容</p>
+                      <p className="text-sm text-[#0F1B2D] leading-relaxed">{company.business_description}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">登録日</p>
                     <p className="text-sm text-[#0F1B2D]">
