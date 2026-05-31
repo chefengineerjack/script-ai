@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, use } from "react";
 import Navbar from "@/app/components/Navbar";
 import Combobox from "@/app/components/Combobox";
-import type { Company, Contact, CompanyStatus, ContactRole, ListingStatus } from "@/app/types/crm";
+import OrgChart from "@/app/components/OrgChart";
+import type { Company, Contact, CompanyStatus, ContactRole, ListingStatus, Department } from "@/app/types/crm";
 import {
   COMPANY_STATUSES,
   COMPANY_SIZES,
@@ -111,9 +112,7 @@ function FetchInfoModal({
 
   function handleApply() {
     const selected: Record<string, string | null> = {};
-    FETCH_FIELDS.forEach(({ key }) => {
-      if (checked[key]) selected[key] = fetchedInfo[key];
-    });
+    FETCH_FIELDS.forEach(({ key }) => { if (checked[key]) selected[key] = fetchedInfo[key]; });
     onApply(selected);
   }
 
@@ -131,7 +130,6 @@ function FetchInfoModal({
             </svg>
           </button>
         </div>
-
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
           {FETCH_FIELDS.map(({ key, label }) => {
             const fetched = fetchedInfo[key];
@@ -139,40 +137,18 @@ function FetchInfoModal({
             const available = fetched != null;
             const hasDiff = available && current && current !== fetched;
             const isSame = available && current === fetched;
-
             return (
-              <div
-                key={key}
-                className={`rounded-[12px] border p-4 ${
-                  available ? "border-[#E5E1D7] bg-white" : "border-[#E5E1D7] bg-[#F6F4EE] opacity-60"
-                }`}
-              >
+              <div key={key} className={`rounded-[12px] border p-4 ${available ? "border-[#E5E1D7] bg-white" : "border-[#E5E1D7] bg-[#F6F4EE] opacity-60"}`}>
                 <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    checked={checked[key] ?? false}
-                    disabled={!available}
-                    onChange={(e) => setChecked((prev) => ({ ...prev, [key]: e.target.checked }))}
-                    className="mt-0.5 accent-[#0F1B2D] w-4 h-4 shrink-0 cursor-pointer"
-                  />
+                  <input type="checkbox" checked={checked[key] ?? false} disabled={!available} onChange={(e) => setChecked((prev) => ({ ...prev, [key]: e.target.checked }))} className="mt-0.5 accent-[#0F1B2D] w-4 h-4 shrink-0 cursor-pointer" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-[#4A5A6E] mb-1">{label}</p>
                     {available ? (
                       <>
                         <p className="text-sm font-medium text-[#0F1B2D]">{fetched}</p>
-                        {hasDiff && (
-                          <p className="text-xs text-[#4A5A6E] mt-1">
-                            現在: <span className="line-through">{current}</span>
-                            {" → "}
-                            <span className="text-[#1F8A5B] font-semibold">{fetched}</span>
-                          </p>
-                        )}
-                        {isSame && (
-                          <p className="text-xs text-[#4A5A6E] mt-1">現在の値と同じです</p>
-                        )}
-                        {!current && !isSame && (
-                          <p className="text-xs text-[#4A5A6E] mt-1">新規に設定されます</p>
-                        )}
+                        {hasDiff && <p className="text-xs text-[#4A5A6E] mt-1">現在: <span className="line-through">{current}</span>{" → "}<span className="text-[#1F8A5B] font-semibold">{fetched}</span></p>}
+                        {isSame && <p className="text-xs text-[#4A5A6E] mt-1">現在の値と同じです</p>}
+                        {!current && !isSame && <p className="text-xs text-[#4A5A6E] mt-1">新規に設定されます</p>}
                       </>
                     ) : (
                       <p className="text-sm text-[#4A5A6E]">取得できませんでした</p>
@@ -183,23 +159,160 @@ function FetchInfoModal({
             );
           })}
         </div>
-
         <div className="border-t border-[#E5E1D7] px-6 py-4 shrink-0 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-[12px] border border-[#E5E1D7] py-2.5 text-sm font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors"
-          >
-            キャンセル
+          <button onClick={onClose} className="flex-1 rounded-[12px] border border-[#E5E1D7] py-2.5 text-sm font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">キャンセル</button>
+          <button onClick={handleApply} className="flex-1 rounded-[12px] bg-[#0F1B2D] py-2.5 text-sm font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity">選択した項目を反映</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 部署詳細モーダル ────────────────────────────────────────
+
+function DeptDetailModal({
+  dept,
+  isExisting,
+  onClose,
+  onSave,
+}: {
+  dept: Department;
+  isExisting: boolean;
+  onClose: () => void;
+  onSave: (updated: Department) => void;
+}) {
+  const [name, setName] = useState(dept.name);
+  const [headCount, setHeadCount] = useState(dept.head_count);
+  const [location, setLocation] = useState(dept.location);
+  const [role, setRole] = useState(dept.role);
+  const [painPoints, setPainPoints] = useState([...dept.pain_points]);
+  const [newPP, setNewPP] = useState("");
+
+  function handleSave() {
+    onSave({ ...dept, name, head_count: headCount, location, role, pain_points: painPoints });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#0F1B2D]/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-white rounded-[20px] border-2 border-[#0F1B2D] shadow-[0_24px_64px_rgba(15,27,45,0.2)] max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between border-b border-[#E5E1D7] px-6 py-4 shrink-0">
+          <div>
+            <h2 className="text-base font-black text-[#0F1B2D]">部署詳細</h2>
+            {!isExisting && <p className="text-xs text-amber-500 mt-0.5">※ 組織図を保存すると確定されます</p>}
+          </div>
+          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-[#E5E1D7] transition-colors">
+            <svg className="w-5 h-5 text-[#4A5A6E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-          <button
-            onClick={handleApply}
-            className="flex-1 rounded-[12px] bg-[#0F1B2D] py-2.5 text-sm font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity"
-          >
-            選択した項目を反映
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <div>
+            <label className={labelClass}>部署名</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>人数</label>
+              <input type="number" min={0} value={headCount} onChange={(e) => setHeadCount(Number(e.target.value))} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>所在地</label>
+              <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="東京本社" className={inputClass} />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>役割・ミッション</label>
+            <textarea value={role} onChange={(e) => setRole(e.target.value)} rows={3} placeholder="この部署の役割" className={`${inputClass} resize-none`} />
+          </div>
+          <div>
+            <label className={labelClass}>ペインポイント</label>
+            <div className="space-y-2">
+              {painPoints.map((pp, i) => (
+                <div key={i} className="flex items-center gap-2 bg-[#F6F4EE] rounded-[10px] px-3 py-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                  <p className="flex-1 text-sm text-[#0F1B2D]">{pp}</p>
+                  <button onClick={() => setPainPoints((prev) => prev.filter((_, idx) => idx !== i))} className="text-[#D9534F] hover:opacity-70 transition-opacity">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newPP}
+                  onChange={(e) => setNewPP(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && newPP.trim()) { setPainPoints((prev) => [...prev, newPP.trim()]); setNewPP(""); } }}
+                  placeholder="ペインポイントを追加（Enter）"
+                  className={inputClass}
+                />
+                <button
+                  onClick={() => { if (newPP.trim()) { setPainPoints((prev) => [...prev, newPP.trim()]); setNewPP(""); } }}
+                  className="shrink-0 rounded-[10px] bg-[#0F1B2D] px-3 text-xs font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity"
+                >
+                  追加
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-[#E5E1D7] px-6 py-4 shrink-0 flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-[12px] border border-[#E5E1D7] py-2.5 text-sm font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">キャンセル</button>
+          <button onClick={handleSave} className="flex-1 rounded-[12px] bg-[#0F1B2D] py-2.5 text-sm font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity">
+            {isExisting ? "保存" : "適用"}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+// ── ツリービューアイテム ────────────────────────────────────
+
+function DeptTreeItem({
+  dept,
+  allDepts,
+  depth,
+  onSelect,
+}: {
+  dept: Department;
+  allDepts: Department[];
+  depth: number;
+  onSelect: (dept: Department) => void;
+}) {
+  const children = allDepts.filter((d) => dept.children.includes(d.id));
+  const dotColor = depth === 0 ? "bg-[#0F1B2D]" : depth === 1 ? "bg-blue-400" : depth === 2 ? "bg-teal-400" : "bg-gray-300";
+
+  return (
+    <>
+      <div
+        className="flex items-center gap-2 py-2.5 rounded-[10px] cursor-pointer hover:bg-[#F6F4EE] transition-colors group"
+        style={{ paddingLeft: `${12 + depth * 20}px`, paddingRight: "12px" }}
+        onClick={() => onSelect(dept)}
+      >
+        <div className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-[#0F1B2D]">{dept.name}</span>
+            {dept.head_count > 0 && <span className="text-xs text-[#4A5A6E]">{dept.head_count}名</span>}
+            {dept.pain_points.length > 0 && (
+              <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-1.5 py-0.5 shrink-0">
+                課題{dept.pain_points.length}件
+              </span>
+            )}
+          </div>
+          {dept.role && <p className="text-xs text-[#4A5A6E] truncate">{dept.role}</p>}
+        </div>
+        <svg className="w-4 h-4 text-[#E5E1D7] group-hover:text-[#4A5A6E] transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
+      {children.map((child) => (
+        <DeptTreeItem key={child.id} dept={child} allDepts={allDepts} depth={depth + 1} onSelect={onSelect} />
+      ))}
+    </>
   );
 }
 
@@ -241,11 +354,7 @@ function ContactFormModal({
       const payload = { company_id: companyId, name, department, position, role: role || null, email, phone, notes, info_source: infoSource };
       const url = isEdit ? `/api/contacts/${initialData!.id}` : "/api/contacts";
       const method = isEdit ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "保存に失敗しました"); return; }
       onSaved(data.contact);
@@ -265,7 +374,6 @@ function ContactFormModal({
             </svg>
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <div>
             <label className={labelClass}>氏名 <span className="text-[#D9534F]">*</span></label>
@@ -274,27 +382,11 @@ function ContactFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>部門</label>
-              <Combobox
-                value={department}
-                onChange={setDepartment}
-                options={DEPARTMENTS}
-                usedValues={usedDepartments}
-                usedLabel="この企業で使用済み"
-                optionsLabel="よく使われる部署名"
-                placeholder="部署名を入力または選択"
-              />
+              <Combobox value={department} onChange={setDepartment} options={DEPARTMENTS} usedValues={usedDepartments} usedLabel="この企業で使用済み" optionsLabel="よく使われる部署名" placeholder="部署名を入力または選択" />
             </div>
             <div>
               <label className={labelClass}>役職</label>
-              <Combobox
-                value={position}
-                onChange={setPosition}
-                options={POSITIONS}
-                usedValues={usedPositions}
-                usedLabel="この企業で使用済み"
-                optionsLabel="よく使われる役職"
-                placeholder="役職を入力または選択"
-              />
+              <Combobox value={position} onChange={setPosition} options={POSITIONS} usedValues={usedPositions} usedLabel="この企業で使用済み" optionsLabel="よく使われる役職" placeholder="役職を入力または選択" />
             </div>
           </div>
           <div>
@@ -327,11 +419,8 @@ function ContactFormModal({
               ))}
             </div>
           </div>
-          {error && (
-            <p className="rounded-[10px] bg-[#D9534F]/10 border border-[#D9534F]/30 px-3 py-2 text-xs text-[#D9534F]">{error}</p>
-          )}
+          {error && <p className="rounded-[10px] bg-[#D9534F]/10 border border-[#D9534F]/30 px-3 py-2 text-xs text-[#D9534F]">{error}</p>}
         </form>
-
         <div className="border-t border-[#E5E1D7] px-6 py-4 shrink-0 flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 rounded-[12px] border border-[#E5E1D7] py-2.5 text-sm font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">キャンセル</button>
           <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={submitting} className="flex-1 rounded-[12px] bg-[#0F1B2D] py-2.5 text-sm font-bold text-[#C8FF3E] hover:opacity-90 transition-opacity disabled:opacity-50">
@@ -446,13 +535,8 @@ function ContactCard({
           </span>
         )}
       </div>
-      {contact.notes && (
-        <p className="text-xs text-[#4A5A6E] leading-relaxed bg-[#F6F4EE] rounded-[8px] px-3 py-2 mb-3">{contact.notes}</p>
-      )}
-      <button
-        onClick={handleGenerateScript}
-        className="w-full flex items-center justify-center gap-1.5 rounded-[10px] bg-[#C8FF3E] py-2 text-xs font-bold text-[#0F1B2D] hover:opacity-90 transition-opacity"
-      >
+      {contact.notes && <p className="text-xs text-[#4A5A6E] leading-relaxed bg-[#F6F4EE] rounded-[8px] px-3 py-2 mb-3">{contact.notes}</p>}
+      <button onClick={handleGenerateScript} className="w-full flex items-center justify-center gap-1.5 rounded-[10px] bg-[#C8FF3E] py-2 text-xs font-bold text-[#0F1B2D] hover:opacity-90 transition-opacity">
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
@@ -497,6 +581,16 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
   const [deleteContact, setDeleteContact] = useState<string | null>(null);
   const [deleteCompanyConfirm, setDeleteCompanyConfirm] = useState(false);
 
+  // 部署・組織図
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
+  const [orgView, setOrgView] = useState<"tree" | "chart">("chart");
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [existingDeptIds, setExistingDeptIds] = useState<Set<string>>(new Set());
+  const [showCreateRoot, setShowCreateRoot] = useState(false);
+  const [rootDeptName, setRootDeptName] = useState("");
+  const [creatingRoot, setCreatingRoot] = useState(false);
+
   const fetchCompany = useCallback(async () => {
     const res = await fetch(`/api/companies/${id}`);
     if (res.status === 404) { setNotFound(true); setLoading(false); return; }
@@ -518,7 +612,26 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     setLoading(false);
   }, [id]);
 
+  const fetchDepartments = useCallback(async () => {
+    setLoadingDepts(true);
+    try {
+      const res = await fetch(`/api/companies/${id}/departments`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const rows: Omit<Department, "children">[] = data.departments ?? [];
+      const depts: Department[] = rows.map((d) => ({
+        ...d,
+        children: rows.filter((c) => c.parent_id === d.id).map((c) => c.id),
+      }));
+      setDepartments(depts);
+      setExistingDeptIds(new Set(depts.map((d) => d.id)));
+    } finally {
+      setLoadingDepts(false);
+    }
+  }, [id]);
+
   useEffect(() => { fetchCompany(); }, [fetchCompany]);
+  useEffect(() => { fetchDepartments(); }, [fetchDepartments]);
 
   async function handleSave() {
     if (!company) return;
@@ -527,22 +640,14 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        official_name: editName,
-        industry: editIndustry,
-        company_size: editSize,
-        status: editStatus,
-        notes: editNotes,
-        established_year: editEstablishedYear || null,
-        capital: editCapital || null,
-        headquarters: editHeadquarters || null,
-        business_description: editBusinessDescription || null,
+        official_name: editName, industry: editIndustry, company_size: editSize,
+        status: editStatus, notes: editNotes,
+        established_year: editEstablishedYear || null, capital: editCapital || null,
+        headquarters: editHeadquarters || null, business_description: editBusinessDescription || null,
         listing_status: editListingStatus,
       }),
     });
-    if (res.ok) {
-      await fetchCompany();
-      setEditMode(false);
-    }
+    if (res.ok) { await fetchCompany(); setEditMode(false); }
     setSaving(false);
   }
 
@@ -551,10 +656,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     try {
       const res = await fetch(`/api/companies/${id}/fetch-info`, { method: "POST" });
       const data = await res.json();
-      if (res.ok) {
-        setFetchedInfo(data.info);
-        setShowFetchModal(true);
-      }
+      if (res.ok) { setFetchedInfo(data.info); setShowFetchModal(true); }
     } finally {
       setFetchingInfo(false);
     }
@@ -562,14 +664,8 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
   async function handleApplyFetchedInfo(selected: Record<string, string | null>) {
     setSaving(true);
-    const res = await fetch(`/api/companies/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(selected),
-    });
-    if (res.ok) {
-      await fetchCompany();
-    }
+    const res = await fetch(`/api/companies/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(selected) });
+    if (res.ok) await fetchCompany();
     setShowFetchModal(false);
     setFetchedInfo(null);
     setSaving(false);
@@ -582,10 +678,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
   async function handleDeleteContact(contactId: string) {
     const res = await fetch(`/api/contacts/${contactId}`, { method: "DELETE" });
-    if (res.ok) {
-      setContacts((prev) => prev.filter((c) => c.id !== contactId));
-      setDeleteContact(null);
-    }
+    if (res.ok) { setContacts((prev) => prev.filter((c) => c.id !== contactId)); setDeleteContact(null); }
   }
 
   function handleContactSaved(contact: Contact) {
@@ -597,7 +690,44 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     setEditingContact(undefined);
   }
 
-  // 担当者から使用済み部署・役職を抽出
+  async function handleSaveOrgChart(current: Department[], deletedIds: string[]) {
+    const res = await fetch(`/api/companies/${id}/departments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ departments: current, deletedIds }),
+    });
+    if (res.ok) await fetchDepartments();
+  }
+
+  async function handleUpdateDept(updated: Department) {
+    setDepartments((prev) => prev.map((d) => d.id === updated.id ? { ...updated, children: d.children } : d));
+    if (existingDeptIds.has(updated.id)) {
+      await fetch(`/api/companies/${id}/departments/${updated.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: updated.name, head_count: updated.head_count, location: updated.location, role: updated.role, pain_points: updated.pain_points }),
+      });
+    }
+    setSelectedDept(null);
+  }
+
+  async function handleCreateRootDept() {
+    if (!rootDeptName.trim()) return;
+    setCreatingRoot(true);
+    const newId = crypto.randomUUID();
+    const newDept: Department = {
+      id: newId, company_id: id, name: rootDeptName.trim(),
+      parent_id: null, head_count: 0, location: "", role: "", pain_points: [], children: [],
+    };
+    const res = await fetch(`/api/companies/${id}/departments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ departments: [newDept], deletedIds: [] }),
+    });
+    if (res.ok) { await fetchDepartments(); setShowCreateRoot(false); setRootDeptName(""); }
+    setCreatingRoot(false);
+  }
+
   const usedDepartments = [...new Set(contacts.map((c) => c.department).filter(Boolean))] as string[];
   const usedPositions = [...new Set(contacts.map((c) => c.position).filter(Boolean))] as string[];
 
@@ -632,11 +762,14 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
       {/* モーダル類 */}
       {showFetchModal && fetchedInfo && (
-        <FetchInfoModal
-          company={company}
-          fetchedInfo={fetchedInfo}
-          onApply={handleApplyFetchedInfo}
-          onClose={() => { setShowFetchModal(false); setFetchedInfo(null); }}
+        <FetchInfoModal company={company} fetchedInfo={fetchedInfo} onApply={handleApplyFetchedInfo} onClose={() => { setShowFetchModal(false); setFetchedInfo(null); }} />
+      )}
+      {selectedDept && (
+        <DeptDetailModal
+          dept={selectedDept}
+          isExisting={existingDeptIds.has(selectedDept.id)}
+          onClose={() => setSelectedDept(null)}
+          onSave={handleUpdateDept}
         />
       )}
       {(showContactForm || editingContact) && (
@@ -650,18 +783,10 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
         />
       )}
       {deleteContact && (
-        <DeleteModal
-          label="担当者"
-          onConfirm={() => handleDeleteContact(deleteContact)}
-          onCancel={() => setDeleteContact(null)}
-        />
+        <DeleteModal label="担当者" onConfirm={() => handleDeleteContact(deleteContact)} onCancel={() => setDeleteContact(null)} />
       )}
       {deleteCompanyConfirm && (
-        <DeleteModal
-          label={`「${company.official_name}」とすべての担当者データ`}
-          onConfirm={handleDeleteCompany}
-          onCancel={() => setDeleteCompanyConfirm(false)}
-        />
+        <DeleteModal label={`「${company.official_name}」とすべての担当者データ`} onConfirm={handleDeleteCompany} onCancel={() => setDeleteCompanyConfirm(false)} />
       )}
 
       <div className="min-h-screen bg-[#F6F4EE]">
@@ -678,7 +803,6 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 企業情報カード */}
           <div className="bg-white rounded-[20px] border-2 border-[#0F1B2D] shadow-[0_8px_32px_rgba(15,27,45,0.08)] mb-6 overflow-hidden">
-            {/* カードヘッダー */}
             <div className="border-b border-[#E5E1D7] bg-[#F6F4EE] px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
                 <span className="text-xl">🏢</span>
@@ -690,19 +814,10 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               <div className="flex items-center gap-2 flex-wrap">
                 {!editMode && <StatusBadge status={company.status} />}
                 {!editMode && (
-                  <button
-                    onClick={handleFetchInfo}
-                    disabled={fetchingInfo}
-                    className="flex items-center gap-1.5 rounded-[10px] border border-[#E5E1D7] px-3 py-1.5 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors disabled:opacity-50"
-                  >
+                  <button onClick={handleFetchInfo} disabled={fetchingInfo} className="flex items-center gap-1.5 rounded-[10px] border border-[#E5E1D7] px-3 py-1.5 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors disabled:opacity-50">
                     {fetchingInfo ? (
-                      <>
-                        <span className="inline-block h-3 w-3 rounded-full border-2 border-[#E5E1D7] border-t-[#0F1B2D] animate-spin" />
-                        取得中...
-                      </>
-                    ) : (
-                      <>🔍 公開情報を取得</>
-                    )}
+                      <><span className="inline-block h-3 w-3 rounded-full border-2 border-[#E5E1D7] border-t-[#0F1B2D] animate-spin" />取得中...</>
+                    ) : <>🔍 公開情報を取得</>}
                   </button>
                 )}
                 {!editMode ? (
@@ -723,7 +838,6 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* 取得中メッセージ */}
             {fetchingInfo && (
               <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2 text-xs text-blue-600">
                 <svg className="w-4 h-4 shrink-0 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -733,7 +847,6 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               </div>
             )}
 
-            {/* 企業情報本体 */}
             <div className="p-6">
               {editMode ? (
                 <div className="space-y-4">
@@ -834,15 +947,11 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                   )}
                   <div>
                     <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">登録日</p>
-                    <p className="text-sm text-[#0F1B2D]">
-                      {new Date(company.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
-                    </p>
+                    <p className="text-sm text-[#0F1B2D]">{new Date(company.created_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-[#4A5A6E] uppercase tracking-wider mb-1">最終更新</p>
-                    <p className="text-sm text-[#0F1B2D]">
-                      {new Date(company.updated_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
-                    </p>
+                    <p className="text-sm text-[#0F1B2D]">{new Date(company.updated_at).toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}</p>
                   </div>
                   {company.analysis_data?.notes && (
                     <div className="sm:col-span-2">
@@ -854,7 +963,6 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               )}
             </div>
 
-            {/* 企業削除 */}
             {!editMode && (
               <div className="border-t border-[#E5E1D7] px-6 py-3 flex justify-end">
                 <button onClick={() => setDeleteCompanyConfirm(true)} className="flex items-center gap-1.5 text-xs text-[#D9534F] hover:opacity-70 transition-opacity">
@@ -877,10 +985,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                 <h2 className="text-base font-black text-[#0F1B2D]">担当者</h2>
                 <span className="text-xs text-[#4A5A6E]">{contacts.length}名</span>
               </div>
-              <button
-                onClick={() => { setEditingContact(undefined); setShowContactForm(true); }}
-                className="flex items-center gap-1 text-xs font-bold text-[#0F1B2D] hover:opacity-70 transition-opacity"
-              >
+              <button onClick={() => { setEditingContact(undefined); setShowContactForm(true); }} className="flex items-center gap-1 text-xs font-bold text-[#0F1B2D] hover:opacity-70 transition-opacity">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
@@ -891,25 +996,103 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               {contacts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <p className="text-sm text-[#4A5A6E] mb-3">まだ担当者が登録されていません</p>
-                  <button
-                    onClick={() => { setEditingContact(undefined); setShowContactForm(true); }}
-                    className="rounded-[10px] border border-[#E5E1D7] px-4 py-2 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors"
-                  >
+                  <button onClick={() => { setEditingContact(undefined); setShowContactForm(true); }} className="rounded-[10px] border border-[#E5E1D7] px-4 py-2 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">
                     最初の担当者を追加
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {contacts.map((c) => (
-                    <ContactCard
-                      key={c.id}
-                      contact={c}
-                      companyName={company.official_name}
-                      onEdit={(ct) => { setEditingContact(ct); setShowContactForm(false); }}
-                      onDelete={(cid) => setDeleteContact(cid)}
-                    />
+                    <ContactCard key={c.id} contact={c} companyName={company.official_name} onEdit={(ct) => { setEditingContact(ct); setShowContactForm(false); }} onDelete={(cid) => setDeleteContact(cid)} />
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* 部署・組織図セクション */}
+          <div className="bg-white rounded-[20px] border border-[#E5E1D7] shadow-[0_4px_16px_rgba(15,27,45,0.04)] mb-6 overflow-hidden">
+            <div className="border-b border-[#E5E1D7] px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#0F1B2D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h2 className="text-base font-black text-[#0F1B2D]">部署・組織図</h2>
+                <span className="text-xs text-[#4A5A6E]">{departments.length}部署</span>
+              </div>
+              {departments.length > 0 && (
+                <div className="flex items-center gap-1 bg-[#F6F4EE] rounded-[10px] p-1">
+                  {(["tree", "chart"] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setOrgView(v)}
+                      className={`px-3 py-1 rounded-[8px] text-xs font-medium transition-colors ${orgView === v ? "bg-white text-[#0F1B2D] shadow-sm" : "text-[#4A5A6E] hover:text-[#0F1B2D]"}`}
+                    >
+                      {v === "tree" ? "ツリー" : "組織図"}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 sm:p-6">
+              {loadingDepts ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-6 w-6 rounded-full border-4 border-[#E5E1D7] border-t-[#0F1B2D] animate-spin" />
+                </div>
+              ) : departments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-12 h-12 rounded-full bg-[#F6F4EE] flex items-center justify-center mb-3">
+                    <svg className="w-6 h-6 text-[#4A5A6E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-[#4A5A6E] mb-4">まだ組織図が作成されていません</p>
+                  {showCreateRoot ? (
+                    <div className="flex items-center gap-2 w-full max-w-xs">
+                      <input
+                        type="text"
+                        value={rootDeptName}
+                        onChange={(e) => setRootDeptName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateRootDept()}
+                        placeholder="本部・部署名を入力"
+                        autoFocus
+                        className="flex-1 rounded-[12px] border-[1.5px] border-[#E5E1D7] px-3 py-2 text-sm text-[#0F1B2D] focus:border-[#0F1B2D] focus:outline-none focus:ring-2 focus:ring-[#0F1B2D]/10"
+                      />
+                      <button
+                        onClick={handleCreateRootDept}
+                        disabled={!rootDeptName.trim() || creatingRoot}
+                        className="rounded-[12px] bg-[#0F1B2D] px-3 py-2 text-xs font-bold text-[#C8FF3E] hover:opacity-90 disabled:opacity-50 transition-opacity"
+                      >
+                        {creatingRoot ? "作成中..." : "作成"}
+                      </button>
+                      <button onClick={() => setShowCreateRoot(false)} className="text-xs text-[#4A5A6E] hover:text-[#0F1B2D]">キャンセル</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowCreateRoot(true)}
+                      className="flex items-center gap-1.5 rounded-[12px] border border-[#E5E1D7] px-4 py-2 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                      組織図を作成する
+                    </button>
+                  )}
+                </div>
+              ) : orgView === "tree" ? (
+                <div className="space-y-0.5">
+                  {departments.filter((d) => d.parent_id === null).map((root) => (
+                    <DeptTreeItem key={root.id} dept={root} allDepts={departments} depth={0} onSelect={(d) => setSelectedDept(d)} />
+                  ))}
+                </div>
+              ) : (
+                <OrgChart
+                  departments={departments}
+                  selectedId={selectedDept?.id}
+                  onSelect={(dept) => setSelectedDept(selectedDept?.id === dept.id ? null : dept)}
+                  onSave={handleSaveOrgChart}
+                />
               )}
             </div>
           </div>
@@ -924,10 +1107,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
             </div>
             <div className="px-6 py-8 text-center">
               <p className="text-sm text-[#4A5A6E]">スクリプト生成履歴とのリンク機能は近日追加予定です</p>
-              <a
-                href="/#form"
-                className="inline-flex items-center gap-1.5 mt-4 rounded-[10px] bg-[#C8FF3E] px-4 py-2 text-xs font-bold text-[#0F1B2D] hover:opacity-90 transition-opacity"
-              >
+              <a href="/#form" className="inline-flex items-center gap-1.5 mt-4 rounded-[10px] bg-[#C8FF3E] px-4 py-2 text-xs font-bold text-[#0F1B2D] hover:opacity-90 transition-opacity">
                 スクリプトを生成する
               </a>
             </div>

@@ -67,6 +67,19 @@ export type Contact = {
   created_at: string;
 };
 
+export interface Department {
+  id: string;
+  company_id: string;
+  user_id?: string;
+  name: string;
+  parent_id: string | null;
+  head_count: number;
+  location: string;
+  role: string;
+  pain_points: string[];
+  children: string[]; // computed from parent_id, not stored in DB
+}
+
 // ステータスのスタイルマップ
 export const STATUS_STYLE: Record<CompanyStatus, string> = {
   未接触: "bg-[#E5E1D7] text-[#4A5A6E]",
