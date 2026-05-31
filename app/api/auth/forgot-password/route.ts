@@ -2,9 +2,8 @@ import { Resend } from "resend";
 import { getUserByEmail } from "@/app/lib/user";
 import { createResetToken } from "@/app/lib/resetToken";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
+  const resend = new Resend(process.env.RESEND_API_KEY ?? "");
   const { email } = await request.json();
 
   if (!email?.trim()) {
