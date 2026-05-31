@@ -65,14 +65,22 @@ export default function Navbar() {
               スクリプト生成
             </a>
 
-            {/* 生成履歴（ログイン時のみ） */}
+            {/* ログイン時のみ表示するリンク */}
             {user && (
-              <a
-                href="/history"
-                className="hidden sm:block text-sm font-medium text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors px-2 py-1"
-              >
-                生成履歴
-              </a>
+              <>
+                <a
+                  href="/history"
+                  className="hidden sm:block text-sm font-medium text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors px-2 py-1"
+                >
+                  生成履歴
+                </a>
+                <a
+                  href="/companies"
+                  className="hidden sm:block text-sm font-medium text-[#4A5A6E] hover:text-[#0F1B2D] transition-colors px-2 py-1"
+                >
+                  営業管理
+                </a>
+              </>
             )}
 
             {/* 営業フレームワーク解説 ドロップダウン */}

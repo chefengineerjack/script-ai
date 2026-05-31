@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^9.3.1",
+    "@supabase/supabase-js": "^2.106.2",
     "@types/bcryptjs": "^2.4.6",
     "@upstash/redis": "^1.37.0",
     "bcryptjs": "^3.0.3",
@@ -18,6 +19,7 @@
     "openai": "^6.34.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "resend": "^6.12.4",
     "stripe": "^22.1.0"
   },
   "devDependencies": {
