@@ -173,11 +173,13 @@ function FetchInfoModal({
 function DeptDetailModal({
   dept,
   isExisting,
+  contactDeptNames = [],
   onClose,
   onSave,
 }: {
   dept: Department;
   isExisting: boolean;
+  contactDeptNames?: string[];
   onClose: () => void;
   onSave: (updated: Department) => void;
 }) {
@@ -209,7 +211,15 @@ function DeptDetailModal({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <div>
             <label className={labelClass}>部署名</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+            <Combobox
+              value={name}
+              onChange={setName}
+              options={DEPARTMENTS}
+              usedValues={contactDeptNames}
+              usedLabel="担当者の入力済み部署名"
+              optionsLabel="よく使われる部署名"
+              placeholder="部署名を入力"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -590,6 +600,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
   const [showCreateRoot, setShowCreateRoot] = useState(false);
   const [rootDeptName, setRootDeptName] = useState("");
   const [creatingRoot, setCreatingRoot] = useState(false);
+  const [filteredDeptName, setFilteredDeptName] = useState<string | null>(null);
 
   const fetchCompany = useCallback(async () => {
     const res = await fetch(`/api/companies/${id}`);
@@ -728,8 +739,11 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
     setCreatingRoot(false);
   }
 
-  const usedDepartments = [...new Set(contacts.map((c) => c.department).filter(Boolean))] as string[];
+  const orgDeptNames = departments.map((d) => d.name);
+  const contactDeptNames = [...new Set(contacts.map((c) => c.department).filter(Boolean))] as string[];
+  const usedDepartments = [...new Set([...orgDeptNames, ...contactDeptNames.filter((n) => !orgDeptNames.includes(n))])];
   const usedPositions = [...new Set(contacts.map((c) => c.position).filter(Boolean))] as string[];
+  const displayedContacts = filteredDeptName ? contacts.filter((c) => c.department === filteredDeptName) : contacts;
 
   if (loading) {
     return (
@@ -768,6 +782,7 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
         <DeptDetailModal
           dept={selectedDept}
           isExisting={existingDeptIds.has(selectedDept.id)}
+          contactDeptNames={contactDeptNames}
           onClose={() => setSelectedDept(null)}
           onSave={handleUpdateDept}
         />
@@ -977,13 +992,29 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
 
           {/* 担当者セクション */}
           <div className="bg-white rounded-[20px] border border-[#E5E1D7] shadow-[0_4px_16px_rgba(15,27,45,0.04)] mb-6 overflow-hidden">
-            <div className="border-b border-[#E5E1D7] px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-[#0F1B2D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="border-b border-[#E5E1D7] px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <svg className="w-5 h-5 text-[#0F1B2D] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <h2 className="text-base font-black text-[#0F1B2D]">担当者</h2>
-                <span className="text-xs text-[#4A5A6E]">{contacts.length}名</span>
+                <span className="text-xs text-[#4A5A6E]">
+                  {filteredDeptName ? `${displayedContacts.length}名（${filteredDeptName}）` : `${contacts.length}名`}
+                </span>
+                {filteredDeptName && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-[#0F1B2D] text-[#C8FF3E] rounded-full px-2.5 py-1 font-medium">
+                    {filteredDeptName}でフィルタ中
+                    <button
+                      onClick={() => { setFilteredDeptName(null); setSelectedDept(null); }}
+                      className="ml-0.5 rounded-full hover:opacity-70 transition-opacity p-0.5"
+                      aria-label="フィルタを解除"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
               </div>
               <button onClick={() => { setEditingContact(undefined); setShowContactForm(true); }} className="flex items-center gap-1 text-xs font-bold text-[#0F1B2D] hover:opacity-70 transition-opacity">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -993,16 +1024,28 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               </button>
             </div>
             <div className="p-4">
-              {contacts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-sm text-[#4A5A6E] mb-3">まだ担当者が登録されていません</p>
-                  <button onClick={() => { setEditingContact(undefined); setShowContactForm(true); }} className="rounded-[10px] border border-[#E5E1D7] px-4 py-2 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">
-                    最初の担当者を追加
-                  </button>
-                </div>
+              {displayedContacts.length === 0 ? (
+                filteredDeptName ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <p className="text-sm text-[#4A5A6E] mb-2">「{filteredDeptName}」の担当者はまだ登録されていません</p>
+                    <button
+                      onClick={() => { setFilteredDeptName(null); setSelectedDept(null); }}
+                      className="text-xs text-[#0F1B2D] underline underline-offset-2 hover:opacity-70 transition-opacity"
+                    >
+                      フィルタを解除して全担当者を表示
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <p className="text-sm text-[#4A5A6E] mb-3">まだ担当者が登録されていません</p>
+                    <button onClick={() => { setEditingContact(undefined); setShowContactForm(true); }} className="rounded-[10px] border border-[#E5E1D7] px-4 py-2 text-xs font-medium text-[#4A5A6E] hover:border-[#0F1B2D] hover:text-[#0F1B2D] transition-colors">
+                      最初の担当者を追加
+                    </button>
+                  </div>
+                )
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {contacts.map((c) => (
+                  {displayedContacts.map((c) => (
                     <ContactCard key={c.id} contact={c} companyName={company.official_name} onEdit={(ct) => { setEditingContact(ct); setShowContactForm(false); }} onDelete={(cid) => setDeleteContact(cid)} />
                   ))}
                 </div>
@@ -1083,14 +1126,23 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
               ) : orgView === "tree" ? (
                 <div className="space-y-0.5">
                   {departments.filter((d) => d.parent_id === null).map((root) => (
-                    <DeptTreeItem key={root.id} dept={root} allDepts={departments} depth={0} onSelect={(d) => setSelectedDept(d)} />
+                    <DeptTreeItem key={root.id} dept={root} allDepts={departments} depth={0} onSelect={(d) => {
+                      const isToggling = selectedDept?.id === d.id;
+                      setSelectedDept(isToggling ? null : d);
+                      setFilteredDeptName(isToggling ? null : d.name);
+                    }} />
                   ))}
                 </div>
               ) : (
                 <OrgChart
                   departments={departments}
+                  contacts={contacts}
                   selectedId={selectedDept?.id}
-                  onSelect={(dept) => setSelectedDept(selectedDept?.id === dept.id ? null : dept)}
+                  onSelect={(dept) => {
+                    const isToggling = selectedDept?.id === dept.id;
+                    setSelectedDept(isToggling ? null : dept);
+                    setFilteredDeptName(isToggling ? null : dept.name);
+                  }}
                   onSave={handleSaveOrgChart}
                 />
               )}

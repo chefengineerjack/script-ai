@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Pencil, Check, Plus, GripVertical, Trash2, Loader2 } from "lucide-react";
-import type { Department } from "@/app/types/crm";
+import type { Department, Contact } from "@/app/types/crm";
 
 // ── ユーティリティ ─────────────────────────────────────────────────
 
@@ -20,6 +21,15 @@ function getDepth(dept: Department, all: Department[]): number {
   }
   return Math.min(depth, 3);
 }
+
+// ── ロールバッジ（ダーク背景用） ────────────────────────────────────
+const ROLE_DARK: Record<string, string> = {
+  決裁者: "bg-red-500/20 text-red-300",
+  キーマン: "bg-orange-500/20 text-orange-300",
+  推進者: "bg-green-500/20 text-green-300",
+  反対者: "bg-gray-500/20 text-gray-300",
+  情報収集者: "bg-blue-500/20 text-blue-300",
+};
 
 // ── 深さ別スタイル ─────────────────────────────────────────────────
 const DEPTH_BOX = [
@@ -53,14 +63,24 @@ interface BoxProps {
   onDragEnd: () => void;
   onAddChild: (parentId: string) => void;
   onDelete: (id: string) => void;
+  contacts: Contact[];
 }
 
 function OrgBox(props: BoxProps) {
   const {
     dept, allDepts, onSelect, selectedId,
     editMode, draggingIdRef, overTargetId,
-    onDragStart, onDragOver, onDrop, onDragEnd, onAddChild, onDelete,
+    onDragStart, onDragOver, onDrop, onDragEnd, onAddChild, onDelete, contacts,
   } = props;
+
+  const [tooltipRect, setTooltipRect] = useState<DOMRect | null>(null);
+  const deptContacts = contacts.filter((c) =>
+    c.department && (
+      c.department === dept.name ||
+      c.department.includes(dept.name) ||
+      dept.name.includes(c.department)
+    )
+  );
 
   const children  = allDepts.filter((d) => dept.children.includes(d.id));
   const isRoot    = dept.parent_id === null;
@@ -113,8 +133,60 @@ function OrgBox(props: BoxProps) {
 
         {/* 部署名 */}
         <p className={`text-xs font-bold leading-snug mb-1 ${textClass}`}>{dept.name}</p>
-        {/* 人数 */}
-        <p className={`text-xs ${subClass}`}>{dept.head_count > 0 ? `${dept.head_count}名` : "—"}</p>
+        {/* 人数（担当者連携） */}
+        <div className="relative">
+          <p
+            className={`text-xs ${subClass}${deptContacts.length > 0 && !editMode ? " cursor-help" : ""}`}
+            onMouseEnter={(e) => {
+              if (deptContacts.length > 0 && !editMode)
+                setTooltipRect((e.currentTarget as HTMLElement).getBoundingClientRect());
+            }}
+            onMouseLeave={() => setTooltipRect(null)}
+          >
+            {dept.head_count > 0 ? (
+              <>
+                {dept.head_count}名
+                {deptContacts.length > 0 && !editMode && (
+                  <span className="text-[9px] opacity-60 ml-1 font-normal">（担当者{deptContacts.length}名）</span>
+                )}
+              </>
+            ) : deptContacts.length > 0 && !editMode ? (
+              `${deptContacts.length}名（登録済み）`
+            ) : "—"}
+          </p>
+          {tooltipRect && typeof document !== "undefined" && createPortal(
+            <div
+              className="pointer-events-none"
+              style={{
+                position: "fixed",
+                left: tooltipRect.left + tooltipRect.width / 2,
+                top: tooltipRect.top - 6,
+                transform: "translate(-50%, -100%)",
+                zIndex: 9999,
+              }}
+            >
+              <div className="bg-[#0F1B2D] border border-white/10 rounded-[12px] p-3 w-52 shadow-[0_8px_32px_rgba(15,27,45,0.4)]">
+                <p className="text-[10px] font-bold text-[#C8FF3E]/80 mb-2 uppercase tracking-wider">所属担当者</p>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {deptContacts.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-white truncate">{c.name}</p>
+                        {c.position && <p className="text-[10px] text-white/50 truncate">{c.position}</p>}
+                      </div>
+                      {c.role && (
+                        <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${ROLE_DARK[c.role] ?? "bg-gray-500/20 text-gray-300"}`}>
+                          {c.role}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+        </div>
 
         {/* ペインポイントバッジ */}
         {!editMode && dept.pain_points.length > 0 && (
@@ -172,12 +244,13 @@ function OrgBox(props: BoxProps) {
 
 interface OrgChartProps {
   departments: Department[];
+  contacts?: Contact[];
   onSelect?: (dept: Department) => void;
   selectedId?: string | null;
   onSave?: (current: Department[], deletedIds: string[]) => Promise<void>;
 }
 
-export default function OrgChart({ departments, onSelect, selectedId, onSave }: OrgChartProps) {
+export default function OrgChart({ departments, contacts = [], onSelect, selectedId, onSave }: OrgChartProps) {
   const [localDepts, setLocalDepts] = useState<Department[]>(departments);
   const [editMode, setEditMode]     = useState(false);
   const [overTargetId, setOverTargetId] = useState<string | null>(null);
@@ -310,6 +383,7 @@ export default function OrgChart({ departments, onSelect, selectedId, onSave }: 
 
   const boxProps = {
     allDepts: localDepts,
+    contacts,
     onSelect,
     selectedId,
     editMode,
